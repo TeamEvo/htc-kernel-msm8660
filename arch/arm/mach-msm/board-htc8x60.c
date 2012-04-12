@@ -23,7 +23,12 @@
 #include <linux/android_pmem.h>
 #endif
 
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_TMA
+#include <linux/cy8c_tma_ts.h>
+#include <linux/input/cy8c_ts.h>
+#else
 #include <linux/atmel_qt602240.h>
+#endif
 #include <linux/bootmem.h>
 #include <linux/dma-mapping.h>
 #include <linux/i2c.h>
@@ -2572,6 +2577,7 @@ static struct msm_ssbi_platform_data msm8x60_ssbi_pm8058_pdata __devinitdata = {
 #endif
 #endif  /* CONFIG_PMIC8058 */
 
+#ifdef CONFIG_TOUCHSCREEN_ATMEL
 static int htc8x60_ts_atmel_power(int on)
 {
 	pr_info("%s: power %d\n", __func__, on);
@@ -2716,6 +2722,145 @@ static struct i2c_board_info msm_i2c_gsbi5_info[] = {
 		.irq = MSM_GPIO_TO_INT(HTC8X60_TP_ATT_N),
 	},
 };
+#endif /* CONFIG_TOUCHSCREEN_ATMEL */
+
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_TMA
+static int htc8x60_ts_cy8c_set_rst(int on)
+{
+	struct pm8058_gpio_cfg {
+		int                gpio;
+		struct pm_gpio cfg;
+	};
+
+	struct pm8058_gpio_cfg tp_rst[] = {
+		{ /* TW RST Set LOW */
+			PM8058_GPIO_PM_TO_SYS(HTC8X60_TP_RST),
+			{
+				.direction	= PM_GPIO_DIR_OUT,
+				.output_value	= 0,
+				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
+				.pull		= PM_GPIO_PULL_NO,
+				.out_strength	= PM_GPIO_STRENGTH_HIGH,
+				.function	= PM_GPIO_FUNC_NORMAL,
+				.vin_sel	= PM8058_GPIO_VIN_S3,
+				.inv_int_pol	= 0,
+			}
+		},
+		{ /* TW RST Set HIGH */
+			PM8058_GPIO_PM_TO_SYS(HTC8X60_TP_RST),
+			{
+				.direction	= PM_GPIO_DIR_OUT,
+				.output_value	= 1,
+				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
+				.pull		= PM_GPIO_PULL_NO,
+				.out_strength	= PM_GPIO_STRENGTH_HIGH,
+				.function	= PM_GPIO_FUNC_NORMAL,
+				.vin_sel	= PM8058_GPIO_VIN_S3,
+				.inv_int_pol	= 0,
+			}
+		},
+	};
+	return pm8xxx_gpio_config(tp_rst[on].gpio,	&tp_rst[on].cfg);
+}
+
+static int htc8x60_ts_cy8c_power(int on)
+{
+	printk(KERN_INFO "%s():\n", __func__);
+	if (on)
+		htc8x60_ts_cy8c_set_rst(1);
+
+	return 0;
+}
+
+static int htc8x60_ts_cy8c_reset(void)
+{
+	printk(KERN_INFO "[TP] HW reset touch.\n");
+#if 0
+	printk(KERN_INFO "[TP] HTC8X60_TP_RST: %d, PM8058_GPIO_PM_TO_SYS(HTC8X60_TP_RST): %d\n",
+		HTC8X60_TP_RST, PM8058_GPIO_PM_TO_SYS(HTC8X60_TP_RST));
+#endif
+	htc8x60_ts_cy8c_set_rst(0);
+	msleep(10);
+	htc8x60_ts_cy8c_set_rst(1);
+	msleep(200);
+
+	return 0;
+}
+
+struct cy8c_i2c_platform_data htc8x60_ts_cy8c_data[] = {
+	{
+		.version = 0x0C,
+		.timeout = 1,
+		.unlock_attr = 1,
+		.abs_x_min = 11,
+		.abs_x_max = 1012,
+		.abs_y_min = 6,
+		.abs_y_max = 940,
+		.abs_pressure_min = 0,
+		.abs_pressure_max = 255,
+		.abs_width_min = 0,
+		.abs_width_max = 512,
+		.power = htc8x60_ts_cy8c_power,
+		.gpio_irq = HTC8X60_TP_ATT_N_XB,
+		/*.filter_level = {40, 80, 942, 982},*/
+		.reset = htc8x60_ts_cy8c_reset,
+	},
+
+	{
+		.version = 0x08,
+		.timeout = 1,
+		.abs_x_min = 11,
+		.abs_x_max = 1012,
+		.abs_y_min = 6,
+		.abs_y_max = 940,
+		.abs_pressure_min = 0,
+		.abs_pressure_max = 255,
+		.abs_width_min = 0,
+		.abs_width_max = 512,
+		.power = htc8x60_ts_cy8c_power,
+		.gpio_irq = HTC8X60_TP_ATT_N_XB,
+		/*.filter_level = {40, 80, 942, 982},*/
+	},
+
+	{
+		.version = 0x00,
+		.timeout = 1,
+		.abs_x_min = 11,
+		.abs_x_max = 1012,
+		.abs_y_min = 6,
+		.abs_y_max = 940,
+		.abs_pressure_min = 0,
+		.abs_pressure_max = 255,
+		.abs_width_min = 0,
+		.abs_width_max = 512,
+		.power = htc8x60_ts_cy8c_power,
+		.gpio_irq = HTC8X60_TP_ATT_N_XB,
+		.reset = htc8x60_ts_cy8c_reset,
+	},
+};
+
+#define PVT_VERSION	0x80
+
+static void htc8x60_ts_cy8c_set_system_rev(uint8_t rev)
+{
+	ssize_t i = 0;
+#if 0
+	printk(KERN_INFO "[TP] sizeof htc8x60_ts_cy8c_data:%d, system_ver:%d\n",
+	 sizeof(htc8x60_ts_cy8c_data)/sizeof(struct cy8c_i2c_platform_data), rev);
+#endif
+	if (rev >= PVT_VERSION)
+		for (i = 0; i < sizeof(htc8x60_ts_cy8c_data)/sizeof(struct cy8c_i2c_platform_data); i++)
+			htc8x60_ts_cy8c_data[i].auto_reset = 1;
+}
+
+static struct i2c_board_info msm_i2c_gsbi5_info[] = {
+	{
+		I2C_BOARD_INFO(CYPRESS_TMA_NAME, 0x67),
+		.platform_data = &htc8x60_ts_cy8c_data,
+		.irq = MSM_GPIO_TO_INT(HTC8X60_TP_ATT_N_XB)
+	},
+};
+#endif /* CONFIG_TOUCHSCREEN_CYPRESS_TMA */
 
 static struct mpu3050_platform_data mpu3050_data = {
 	.int_config = 0x10,
@@ -4375,7 +4520,11 @@ static ssize_t htc8x60_virtual_keys_show(struct kobject *kobj,
 
 static struct kobj_attribute htc8x60_virtual_keys_attr = {
 	.attr = {
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_TMA
+		.name = "virtualkeys.cy8c-touchscreen",
+#else
 		.name = "virtualkeys.atmel-touchscreen",
+#endif
 		.mode = S_IRUGO,
 	},
 	.show = &htc8x60_virtual_keys_show,
@@ -4569,6 +4718,10 @@ static void __init msm8x60_init(void)
 	register_i2c_devices();
 
 	htc8x60_init_panel();
+
+#ifdef CONFIG_TOUCHSCREEN_CYPRESS_TMA
+	htc8x60_ts_cy8c_set_system_rev(system_rev);
+#endif
 	msm_pm_set_platform_data(msm_pm_data, ARRAY_SIZE(msm_pm_data));
 	msm_pm_set_rpm_wakeup_irq(RPM_SCSS_CPU0_WAKE_UP_IRQ);
 	msm_cpuidle_set_states(msm_cstates, ARRAY_SIZE(msm_cstates),
