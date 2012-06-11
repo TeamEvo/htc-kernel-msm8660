@@ -1470,7 +1470,7 @@ static struct rpm_regulator_init_data rpm_regulator_init_data[] = {
 	RPM_LDO(PM8901_L3,  0, 1, 0, 3300000, 3300000, LDO300HMIN),
 	RPM_LDO(PM8901_L4,  0, 1, 0, 2850000, 2850000, LDO300HMIN),
 	RPM_LDO(PM8901_L5,  0, 1, 0, 2850000, 2850000, LDO300HMIN),
-	RPM_LDO(PM8901_L6,  0, 0, 0, 2200000, 2200000, LDO300HMIN),
+	RPM_LDO(PM8901_L6,  0, 1, 0, 2850000, 2850000, LDO300HMIN),
 
 	/*	 ID       a_on pd ss min_uV   max_uV   init_ip   freq */
 	RPM_SMPS(PM8901_S2, 0, 1, 0, 1200000, 1200000, FTS_HMIN, 1p60),
