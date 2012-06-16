@@ -118,10 +118,10 @@ static int qs_s5k4e1_vreg_enable(const struct msm_camera_sensor_info *sdata)
 {
 	int rc;
 
-	pr_err("%s camera vreg on\n", __func__);
+	pr_err("[CAM] %s camera vreg on\n", __func__);
 
 	if (sdata->camera_power_on == NULL) {
-		pr_err("sensor platform_data didnt register\n");
+		pr_err("[CAM] sensor platform_data didnt register\n");
 		return -EIO;
 	}
 	rc = sdata->camera_power_on();
@@ -131,11 +131,11 @@ static int qs_s5k4e1_vreg_enable(const struct msm_camera_sensor_info *sdata)
 static int qs_s5k4e1_vreg_disable(const struct msm_camera_sensor_info *data)
 {
 	int rc;
-	pr_info("%s camera vreg off\n", __func__);
+	pr_info("[CAM] %s camera vreg off\n", __func__);
 
 	data->pdata->camera_gpio_off();
 	if (data->camera_power_off == NULL) {
-		pr_err("sensor platform_data didnt register\n");
+		pr_err("[CAM] sensor platform_data didnt register\n");
 		return -EIO;
 	}
 
@@ -161,7 +161,7 @@ static int qs_s5k4e1_i2c_rxdata(unsigned short saddr,
 		},
 	};
 	if (i2c_transfer(qs_s5k4e1_client->adapter, msgs, 2) < 0) {
-		pr_info("qs_s5k4e1_i2c_rxdata faild 0x%x\n", saddr);
+		pr_info("[CAM] qs_s5k4e1_i2c_rxdata faild 0x%x\n", saddr);
 		return -EIO;
 	}
 	return 0;
@@ -179,7 +179,7 @@ static int32_t qs_s5k4e1_i2c_txdata(unsigned short saddr,
 		 },
 	};
 	if (i2c_transfer(qs_s5k4e1_client->adapter, msg, 1) < 0) {
-		pr_info("qs_s5k4e1_i2c_txdata faild 0x%x\n", saddr);
+		pr_info("[CAM] qs_s5k4e1_i2c_txdata faild 0x%x\n", saddr);
 		return -EIO;
 	}
 
@@ -198,7 +198,7 @@ static int32_t qs_s5k4e1_i2c_read(unsigned short raddr,
 	buf[1] = (raddr & 0x00FF);
 	rc = qs_s5k4e1_i2c_rxdata(qs_s5k4e1_client->addr>>1, buf, rlen);
 	if (rc < 0) {
-		pr_info("qs_s5k4e1_i2c_read 0x%x failed!\n", raddr);
+		pr_info("[CAM] qs_s5k4e1_i2c_read 0x%x failed!\n", raddr);
 		return rc;
 	}
 	*rdata = (rlen == 2 ? buf[0] << 8 | buf[1] : buf[0]);
@@ -219,7 +219,7 @@ static int32_t qs_s5k4e1_i2c_write_w_sensor(unsigned short waddr,
 //	pr_info("i2c_write_b addr = 0x%x, val = 0x%x\n", waddr, wdata);
 	rc = qs_s5k4e1_i2c_txdata(qs_s5k4e1_client->addr>>1, buf, 4);
 	if (rc < 0) {
-		pr_info("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
+		pr_info("[CAM] i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
 			waddr, wdata);
 	}
 	return rc;
@@ -236,7 +236,7 @@ static int32_t qs_s5k4e1_i2c_write_b_sensor(unsigned short waddr, uint8_t bdata)
 //	pr_info("i2c_write_b addr = 0x%x, val = 0x%x\n", waddr, bdata);
 	rc = qs_s5k4e1_i2c_txdata(qs_s5k4e1_client->addr>>1, buf, 3);
 	if (rc < 0) {
-		pr_info("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
+		pr_info("[CAM] i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
 			waddr, bdata);
 	}
 	return rc;
@@ -282,7 +282,7 @@ static int32_t af_i2c_write_b_sensor(unsigned short baddr, uint8_t bdata)
 //	pr_info("i2c_write_b addr = 0x%x, val = 0x%x\n", baddr, bdata);
 	rc = qs_s5k4e1_i2c_txdata(AF_ADDR>>1, buf, 2);
 	if (rc < 0) {
-		pr_info("i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
+		pr_info("[CAM] i2c_write_b failed, addr = 0x%x, val = 0x%x!\n",
 			baddr, bdata);
 	}
 	return rc;
@@ -318,7 +318,7 @@ static int32_t bridge_i2c_read(unsigned short raddr,
 	buf[1] = (raddr & 0x00FF);
 	rc = qs_s5k4e1_i2c_rxdata(BRIDGE_ADDR>>1, buf, rlen);
 	if (rc < 0) {
-		pr_info("bridge_i2c_read 0x%x failed!\n", raddr);
+		pr_info("[CAM] bridge_i2c_read 0x%x failed!\n", raddr);
 		return rc;
 	}
 	*rdata = (rlen == 2 ? buf[0] << 8 | buf[1] : buf[0]);
@@ -341,7 +341,7 @@ static int32_t qs_s5k4e1_eeprom_i2c_read(unsigned short raddr,
 	buf[1] = (raddr & 0x00FF);
 	rc = qs_s5k4e1_i2c_rxdata(i2caddr, buf, rlen);
 	if (rc < 0) {
-		pr_info("qs_s5k4e1_eeprom_i2c_read 0x%x failed!\n", raddr);
+		pr_info("[CAM] qs_s5k4e1_eeprom_i2c_read 0x%x failed!\n", raddr);
 		return rc;
 	}
 	for (i = 0; i < rlen; i++) {
@@ -589,12 +589,12 @@ static int32_t qs_s5k4e1_bridge_reset(void){
 	return rc;
 
 err:
-        printk("********* bridge reset failure ***** \n");
+        printk("[CAM] ********* bridge reset failure ***** \n");
 	bridge_i2c_write_w(0x53, 0x00);
 	msleep(30);
 
 bridge_fail:
-        printk("*********  bridge_fail******* \n");
+        printk("[CAM] *********  bridge_fail ******* \n");
 	return rc;
 
 }
@@ -905,13 +905,13 @@ static int32_t qs_s5k4e1_write_focus_value(uint16_t code_value)
 		(qs_s5k4e1_ctrl->cam_mode == MODE_3D)) {
 		/* Left */
 		bridge_i2c_write_w(0x06, 0x02);
-		pr_info("%s: Left Lens Position: %d\n", __func__,
+		pr_info("[CAM] %s: Left Lens Position: %d\n", __func__,
 			code_value);
 		code_val_msb = code_value >> 4;
 		code_val_lsb = (code_value & 0x000F) << 4;
 		code_val_lsb |= qs_s5k4e1_af_mode;
 		if (af_i2c_write_b_sensor(code_val_msb, code_val_lsb) < 0) {
-			pr_info("move_focus failed at line %d ...\n", __LINE__);
+			pr_info("[CAM] move_focus failed at line %d ...\n", __LINE__);
 			return -EBUSY;
 		}
 	}
@@ -921,13 +921,13 @@ static int32_t qs_s5k4e1_write_focus_value(uint16_t code_value)
 		/* Right */
 		bridge_i2c_write_w(0x06, 0x01);
 		code_value += qs_s5k4e1_af_right_adjust;
-		pr_info("%s: Right Lens Position: %d\n", __func__,
+		pr_info("[CAM] %s: Right Lens Position: %d\n", __func__,
 			code_value);
 		code_val_msb = code_value >> 4;
 		code_val_lsb = (code_value & 0x000F) << 4;
 		code_val_lsb |= qs_s5k4e1_af_mode;
 		if (af_i2c_write_b_sensor(code_val_msb, code_val_lsb) < 0) {
-			pr_info("move_focus failed at line %d ...\n", __LINE__);
+			pr_info("[CAM] move_focus failed at line %d ...\n", __LINE__);
 			return -EBUSY;
 		}
 	}
@@ -984,7 +984,7 @@ static int32_t qs_s5k4e1_move_focus(int direction,
 	int16_t step_direction, actual_step, dest_lens_position,
 		dest_step_position;
 	int16_t max_step_postion = QS_S5K4E1_TOTAL_STEPS_NEAR_TO_FAR;
-	pr_info("Inside %s\n", __func__);
+	pr_info("[CAM] Inside %s\n", __func__);
 	if (direction == MOVE_NEAR)
 		step_direction = 1;
 	else
@@ -1003,8 +1003,8 @@ static int32_t qs_s5k4e1_move_focus(int direction,
 		dest_step_position = 0;
 
 	if (dest_step_position == qs_s5k4e1_ctrl->curr_step_pos) {
-		pr_info("%s cur and dest pos are same\n", __func__);
-		pr_info("%s cur_step_pos:%d\n", __func__,
+		pr_info("[CAM] %s cur and dest pos are same\n", __func__);
+		pr_info("[CAM] %s cur_step_pos:%d\n", __func__,
 			qs_s5k4e1_ctrl->curr_step_pos);
 		return 0;
 	}
@@ -1058,7 +1058,7 @@ static int32_t qs_s5k4e1_move_focus(int direction,
 
 	if (qs_s5k4e1_ctrl->curr_lens_pos != dest_lens_position) {
 		if (qs_s5k4e1_write_focus_value(dest_lens_position) < 0) {
-			pr_info("move_focus failed at line %d ...\n", __LINE__);
+			pr_info("[CAM] move_focus failed at line %d ...\n", __LINE__);
 			return -EBUSY;
 		}
 	}
@@ -1103,7 +1103,7 @@ static int32_t qs_s5k4e1_set_default_focus(uint8_t af_step)
 				qs_s5k4e1_step_position_table[0];
 		}
 	}
-	pr_info("%s\n", __func__);
+	pr_info("[CAM] %s\n", __func__);
 	return 0;
 }
 
@@ -1253,13 +1253,13 @@ static void qs_s5k4e1_init_focus(void)
 	/* Read the calibration data from left and right sensors if available */
 	rc = qs_s5k4e1_eeprom_i2c_read_b(0x110, &af_far_data, 2);
 	if (rc == 0) {
-		pr_info("%s: Left Far data - %d\n", __func__, af_far_data);
+		pr_info("[CAM] %s: Left Far data - %d\n", __func__, af_far_data);
 		qs_s5k4e1_af_initial_code = af_far_data;
 	}
 
 	rc = qs_s5k4e1_eeprom_i2c_read_b(0x112, &af_far_data, 2);
 	if (rc == 0) {
-		pr_info("%s: Right Far data - %d\n", __func__, af_far_data);
+		pr_info("[CAM] %s: Right Far data - %d\n", __func__, af_far_data);
 		qs_s5k4e1_af_right_adjust = af_far_data -
 			qs_s5k4e1_af_initial_code;
 	}
@@ -1331,10 +1331,10 @@ static int32_t qs_s5k4e1_sensor_setting(int update_type, int rt)
 
 		qs_s5k4e1_write_lsc(lens_eeprom_data, rt);
 		if (qs_s5k4e1_ctrl->cam_mode == MODE_3D) {
-			pr_info("MODE_3D\n");
+			pr_info("[CAM] MODE_3D\n");
 			msleep(60);
 		} else {
-			pr_info("MODE_2D\n");
+			pr_info("[CAM] MODE_2D\n");
 			if (!CSI_CONFIG)
 				mdelay(30);
 			else
@@ -1519,7 +1519,7 @@ static int32_t qs_s5k4e1_power_down(void)
 
 static int qs_s5k4e1_probe_init_done(const struct msm_camera_sensor_info *data)
 {
-	pr_info("probe done\n");
+	pr_info("[CAM] probe done\n");
 	gpio_free(data->sensor_reset);
 	qs_s5k4e1_vreg_disable(data);
 	return 0;
@@ -1530,11 +1530,11 @@ static int
 {
 	int32_t rc = 0;
 	uint16_t chipid = 0;
-	pr_info("%s: %d\n", __func__, __LINE__);
+	pr_info("[CAM] %s: %d\n", __func__, __LINE__);
 	rc = gpio_request(data->sensor_reset, "qs_s5k4e1");
-	pr_info(" qs_s5k4e1_probe_init_sensor\n");
+	pr_info("[CAM] qs_s5k4e1_probe_init_sensor\n");
 	if (!rc) {
-		pr_info("sensor_reset = %d\n", rc);
+		pr_info("[CAM] sensor_reset = %d\n", rc);
 		gpio_direction_output(data->sensor_reset, 0);
 		msleep(20);
 		gpio_set_value_cansleep(data->sensor_reset, 1);
@@ -1548,22 +1548,22 @@ static int
 	qs_s5k4e1_bridge_config(MODE_3D, RES_PREVIEW);
 	msleep(30);
 
-	pr_info(" qs_s5k4e1_probe_init_sensor is called\n");
+	pr_info("[CAM] qs_s5k4e1_probe_init_sensor is called\n");
 	rc = qs_s5k4e1_i2c_read(0x0000, &chipid, 2);
-	pr_info("ID: %d\n", chipid);
+	pr_info("[CAM] ID: %d\n", chipid);
 	/* 4. Compare sensor ID to QS_S5K4E1 ID: */
 	if (chipid != 0x4e10) {
 		rc = -ENODEV;
-		pr_info("qs_s5k4e1_probe_init_sensor fail chip id mismatch\n");
+		pr_info("[CAM] qs_s5k4e1_probe_init_sensor fail chip id mismatch\n");
 		goto init_probe_fail;
 	}
 	goto init_probe_done;
 init_probe_fail:
-	pr_info(" qs_s5k4e1_probe_init_sensor fails\n");
+	pr_info("[CAM] qs_s5k4e1_probe_init_sensor fails\n");
 	gpio_set_value_cansleep(data->sensor_reset, 0);
 	qs_s5k4e1_probe_init_done(data);
 init_probe_done:
-	pr_info(" qs_s5k4e1_probe_init_sensor finishes\n");
+	pr_info("[CAM] qs_s5k4e1_probe_init_sensor finishes\n");
 	return rc;
 }
 /* camsensor_qs_s5k4e1_reset */
@@ -1572,11 +1572,11 @@ int qs_s5k4e1_sensor_open_init(struct msm_camera_sensor_info *data)
 {
 	int32_t rc = 0;
 	pr_info("%s: %d\n", __func__, __LINE__);
-	pr_info("Calling qs_s5k4e1_sensor_open_init\n");
+	pr_info("[CAM] Calling qs_s5k4e1_sensor_open_init\n");
 
 	qs_s5k4e1_ctrl = kzalloc(sizeof(struct qs_s5k4e1_ctrl_t), GFP_KERNEL);
 	if (!qs_s5k4e1_ctrl) {
-		pr_info("qs_s5k4e1_init failed!\n");
+		pr_info("[CAM] qs_s5k4e1_init failed!\n");
 		rc = -ENOMEM;
 		goto init_done;
 	}
@@ -1588,10 +1588,10 @@ int qs_s5k4e1_sensor_open_init(struct msm_camera_sensor_info *data)
 	if (data)
 		qs_s5k4e1_ctrl->sensordata = data;
 	if (rc < 0) {
-		pr_info("Calling qs_s5k4e1_sensor_open_init fail1\n");
+		pr_info("[CAM] Calling qs_s5k4e1_sensor_open_init fail1\n");
 		return rc;
 	}
-	pr_info("%s: %d\n", __func__, __LINE__);
+	pr_info("[CAM] %s: %d\n", __func__, __LINE__);
 
 	qs_s5k4e1_vreg_enable(data);
 	data->pdata->camera_gpio_on();
@@ -1600,9 +1600,9 @@ int qs_s5k4e1_sensor_open_init(struct msm_camera_sensor_info *data)
 	msm_camio_clk_rate_set(QS_S5K4E1_MASTER_CLK_RATE);
 
 	rc = gpio_request(data->sensor_reset, "qs_s5k4e1");
-	pr_info(" qs_s5k4e1_open_init_sensor\n");
+	pr_info("[CAM] qs_s5k4e1_open_init_sensor\n");
 	if (!rc) {
-		pr_info("sensor_reset = %d\n", rc);
+		pr_info("[CAM] sensor_reset = %d\n", rc);
 		gpio_direction_output(data->sensor_reset, 0);
 		mdelay(12);
 		gpio_set_value_cansleep(data->sensor_reset, 1);
@@ -1630,10 +1630,10 @@ int qs_s5k4e1_sensor_open_init(struct msm_camera_sensor_info *data)
 	} else
 		goto init_done;
 init_fail:
-	pr_info("init_fail\n");
+	pr_info("[CAM] init_fail\n");
 	qs_s5k4e1_probe_init_done(data);
 init_done:
-	pr_info("init_done\n");
+	pr_info("[CAM] init_done\n");
 	return rc;
 } /*endof qs_s5k4e1_sensor_open_init*/
 
@@ -1653,17 +1653,17 @@ static int qs_s5k4e1_i2c_probe(struct i2c_client *client,
 	const struct i2c_device_id *id)
 {
 	int rc = 0;
-	pr_info("qs_s5k4e1_probe called!\n");
+	pr_info("[CAM] qs_s5k4e1_probe called!\n");
 
 	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
-		pr_info("i2c_check_functionality failed\n");
+		pr_info("[CAM] i2c_check_functionality failed\n");
 		goto probe_failure;
 	}
 
 	qs_s5k4e1_sensorw = kzalloc(sizeof(struct qs_s5k4e1_work_t),
 		 GFP_KERNEL);
 	if (!qs_s5k4e1_sensorw) {
-		pr_info("kzalloc failed.\n");
+		pr_info("[CAM] kzalloc failed.\n");
 		rc = -ENOMEM;
 		goto probe_failure;
 	}
@@ -1674,11 +1674,11 @@ static int qs_s5k4e1_i2c_probe(struct i2c_client *client,
 
 	msleep(50);
 
-	pr_info("qs_s5k4e1_probe successed! rc = %d\n", rc);
+	pr_info("[CAM] qs_s5k4e1_probe successed! rc = %d\n", rc);
 	return 0;
 
 probe_failure:
-	pr_info("qs_s5k4e1_probe failed! rc = %d\n", rc);
+	pr_info("[CAM] qs_s5k4e1_probe failed! rc = %d\n", rc);
 	return rc;
 }
 
@@ -1737,7 +1737,7 @@ int qs_s5k4e1_2D_sensor_config(void __user *argp)
 		sizeof(struct sensor_cfg_data)))
 		return -EFAULT;
 	mutex_lock(&qs_s5k4e1_mut);
-	pr_info("qs_s5k4e1_sensor_config: cfgtype = %d\n",
+	pr_info("[CAM] qs_s5k4e1_sensor_config: cfgtype = %d\n",
 	cdata.cfgtype);
 		switch (cdata.cfgtype) {
 		case CFG_GET_PICT_FPS:
@@ -1907,7 +1907,7 @@ static int qs_s5k4e1_sensor_release(void)
 	qs_s5k4e1_vreg_disable(qs_s5k4e1_ctrl->sensordata);
 	kfree(qs_s5k4e1_ctrl);
 	qs_s5k4e1_ctrl = NULL;
-	pr_info("qs_s5k4e1_release completed\n");
+	pr_info("[CAM] qs_s5k4e1_release completed\n");
 	mutex_unlock(&qs_s5k4e1_mut);
 
 	return rc;
@@ -1952,7 +1952,7 @@ static ssize_t cam3Dmode_set(struct device *dev,
 #endif
 
 	cam3Dmode_value = tmp;
-	pr_info("[CAM]cam3Dmode_value = %d\n", cam3Dmode_value);
+	pr_info("[CAM] cam3Dmode_value = %d\n", cam3Dmode_value);
 	return count;
 }
 
@@ -1974,31 +1974,31 @@ static DEVICE_ATTR(stereo_low_cap_limit, 0444, stereo_low_cap_limit_get, NULL);
 static int qs_s5k4e1_sysfs_init(void)
 {
 	int ret ;
-	pr_info("[CAM]qs_s5k4e1:kobject creat and add\n");
+	pr_info("[CAM] qs_s5k4e1:kobject creat and add\n");
 	android_qs_s5k4e1 = kobject_create_and_add("android_camera", NULL);
 	if (android_qs_s5k4e1 == NULL) {
-		pr_info("[CAM]qs_s5k4e1_sysfs_init: subsystem_register " \
+		pr_info("[CAM] qs_s5k4e1_sysfs_init: subsystem_register " \
 		"failed\n");
 		ret = -ENOMEM;
 		return ret ;
 	}
-	pr_info("[CAM]qs_s5k4e1:sysfs_create_file\n");
+	pr_info("[CAM] qs_s5k4e1:sysfs_create_file\n");
 	ret = sysfs_create_file(android_qs_s5k4e1, &dev_attr_sensor.attr);
 	if (ret) {
-		pr_info("[CAM]qs_s5k4e1_sysfs_init: sysfs_create_file " \
+		pr_info("[CAM] qs_s5k4e1_sysfs_init: sysfs_create_file " \
 		"failed\n");
 		kobject_del(android_qs_s5k4e1);
 	}
 
 	ret = sysfs_create_file(android_qs_s5k4e1, &dev_attr_cam3Dmode.attr);
 	if (ret) {
-		pr_info("[CAM]qs_s5k4e1_sysfs_init: sysfs_create_file cam3Dmode failed\n");
+		pr_info("[CAM] qs_s5k4e1_sysfs_init: sysfs_create_file cam3Dmode failed\n");
 		kobject_del(android_qs_s5k4e1);
 	}
 
 	ret = sysfs_create_file(android_qs_s5k4e1, &dev_attr_stereo_low_cap_limit.attr);
 	if (ret) {
-		pr_info("[CAM]qs_s5k4e1_sysfs_init: sysfs_create_file stereo_low_cap_limit failed\n");
+		pr_info("[CAM] qs_s5k4e1_sysfs_init: sysfs_create_file stereo_low_cap_limit failed\n");
 		kobject_del(android_qs_s5k4e1);
 	}
 
@@ -2013,7 +2013,7 @@ static int qs_s5k4e1_sensor_probe(struct msm_camera_sensor_info *info,
 	rc = i2c_add_driver(&qs_s5k4e1_i2c_driver);
 	if (rc < 0 || qs_s5k4e1_client == NULL) {
 		rc = -ENOTSUPP;
-		pr_info("I2C add driver failed\n");
+		pr_info("[CAM] I2C add driver failed\n");
 		goto probe_fail;
 	}
 	msm_camio_clk_rate_set(QS_S5K4E1_MASTER_CLK_RATE);
@@ -2035,7 +2035,7 @@ static int qs_s5k4e1_sensor_probe(struct msm_camera_sensor_info *info,
 	return rc;
 
 probe_fail:
-	pr_info("qs_s5k4e1_sensor_probe: SENSOR PROBE FAILS!\n");
+	pr_info("[CAM] qs_s5k4e1_sensor_probe: SENSOR PROBE FAILS!\n");
 	return rc;
 }
 
@@ -2068,7 +2068,7 @@ static int qs_s5k4e1_step_test(void *data, u64 *val)
 	rc = qs_s5k4e1_get_calibration_data
 		(&cdata.data.sensor_3d_cali_data);
 	if (rc < 0)
-		pr_info("%s: Calibration data read fail.\n", __func__);
+		pr_info("[CAM] %s: Calibration data read fail.\n", __func__);
 
 	return 0;
 }
@@ -2114,7 +2114,7 @@ static int qs_s5k4e1_af_step_config(void *data, u64 val)
 {
 	qs_s5k4e1_step_val = val & 0xFFFF;
 	qs_s5k4e1_step_dir = (val >> 16) & 0x1;
-	pr_info("%s\n", __func__);
+	pr_info("[CAM] %s\n", __func__);
 	return 0;
 }
 
@@ -2122,7 +2122,7 @@ static int qs_s5k4e1_af_step(void *data, u64 *val)
 {
 	int i = 0;
 	int dir = MOVE_NEAR;
-	pr_info("%s\n", __func__);
+	pr_info("[CAM] %s\n", __func__);
 	qs_s5k4e1_set_default_focus(0);
 	msleep(5000);
 	if (qs_s5k4e1_step_dir == 1)
@@ -2171,7 +2171,7 @@ static int __qs_s5k4e1_probe(struct platform_device *pdev)
 	struct msm_camera_sensor_info *sdata = pdev->dev.platform_data;
 	qs_s5k4e1_pdev = pdev;
 
-	pr_info("[CAM]qs_s5k4e1_probe\n");
+	pr_info("[CAM] qs_s5k4e1_probe\n");
 	/*turn on power*/
 	//sdata->pdata->camera_gpio_on();
 	rc = qs_s5k4e1_vreg_enable(sdata);
@@ -2205,4 +2205,3 @@ void qs_s5k4e1_exit(void)
 }
 MODULE_DESCRIPTION("Samsung 5MP Bayer sensor driver");
 MODULE_LICENSE("GPL v2");
-

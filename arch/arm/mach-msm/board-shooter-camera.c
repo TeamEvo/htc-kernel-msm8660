@@ -107,7 +107,7 @@ static int camera_sensor_power_enable_8901(char *power)
 	struct regulator *sensor_power;
 	int rc;
 
-	pr_info("%s %s",__func__,power);
+	pr_info("[CAM] %s %s",__func__,power);
 	if (power == NULL)
 		return -ENODEV;
 
@@ -220,8 +220,8 @@ static int shooter_sp3d_vreg_off(void)
 	udelay(10);
 
 	//according to logic Jason Kao, only tutn off l15 when sharp
-	if (!(engineerid == 7) || (system_rev == 0x80 && engineerid == 0x1)) {
-	/* main camera AVDD */
+	if (!(engineerid == 7) || !(system_rev == 0x80 && engineerid == 0x1)) {
+		/* main camera AVDD */
 		rc = camera_sensor_power_disable("8058_l15");
 		udelay(10);
 	}
@@ -364,7 +364,7 @@ static struct platform_device flashlight_device = {
 #endif
 
 #ifdef CONFIG_QS_S5K4E1_HTC
-static int Shooter_qs_s5k4e1_vreg_on(void)
+static int shooter_qs_s5k4e1_vreg_on(void)
 {
 	int rc;
 	pr_info("[CAM] %s\n", __func__);
@@ -374,15 +374,15 @@ static int Shooter_qs_s5k4e1_vreg_on(void)
 	pr_info("[CAM] sensor_power_enable(\"8058_l15\", 1800) == %d\n", rc);
 	udelay(50);
 
-	if(system_rev >= 2 && engineerid >= 3){/*VERSION A*/
+	if ((system_rev >= 2 && engineerid >= 3) || system_rev == 0x80) { /*VERSION A*/
 		/*IO*//*This is switch power*/
 		rc = camera_sensor_power_enable_8901("8901_lvs3");
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
-		mdelay(1);
+		mdelay(10);
 		
 		rc = camera_sensor_power_enable_8901("8901_lvs2");
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs2\", 1800) == %d\n", rc);
-	}else {
+	} else {
 		rc = camera_sensor_power_enable("8058_l9", 1800000);
 		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);
 		/* VDDIO*/
@@ -403,7 +403,7 @@ static int Shooter_qs_s5k4e1_vreg_on(void)
 	return rc;
 }
 
-static int Shooter_qs_s5k4e1_vreg_off(void)
+static int shooter_qs_s5k4e1_vreg_off(void)
 {
 	int rc;
 	pr_info("[CAM] %s\n", __func__);
@@ -416,12 +416,13 @@ static int Shooter_qs_s5k4e1_vreg_off(void)
 	udelay(50);
 	
 	/*VDDIO*/
-	if(system_rev >= 2 && engineerid >= 3){/*VERSION A*/
+	if ((system_rev >= 2 && engineerid >= 3) || system_rev == 0x80) { /*VERSION A*/
 		rc = camera_sensor_power_disable("8901_lvs2");
 		/*This is swich power*/
+		mdelay(10);
 		rc = camera_sensor_power_disable("8901_lvs3");
 		pr_info("[CAM] sensor_power_enable(\"8901_lvs3\", 1800) == %d\n", rc);
-	}else{
+	} else {
 		/*This is swich power*/
 		rc = camera_sensor_power_disable("8058_l9");
 		pr_info("[CAM] sensor_power_disable(\"8058_l9\") == %d\n", rc);
@@ -430,11 +431,11 @@ static int Shooter_qs_s5k4e1_vreg_off(void)
 	}
 
 	//according to logic Jason Kao, do not turn off l15 to avoid current leakage
-	if (!(engineerid == 7)) 
-	{
+	if (!(engineerid == 7) || !(system_rev == 0x80 && engineerid == 0x1)) {
 		rc = camera_sensor_power_disable("8058_l15");
 		udelay(50);
 	}
+
 	return rc;
 }
 
@@ -460,22 +461,23 @@ static struct msm_camera_device_platform_data msm_camera_device_data_qs_s5k4e1 =
 };
 
 static struct msm_camera_sensor_info msm_camera_sensor_qs_s5k4e1_data = {
-	.sensor_name	= "qs_s5k4e1",
-	.sensor_reset	= SHOOTER_S5K4E1_PD,
+	.sensor_name		= "qs_s5k4e1",
+	.sensor_reset		= SHOOTER_S5K4E1_PD,
 	.vcm_enable		= 0,
-	.camera_power_on = Shooter_qs_s5k4e1_vreg_on,
-	.camera_power_off = Shooter_qs_s5k4e1_vreg_off,
-	.camera_clk_switch = shooter_maincam_clk_switch,
+	.camera_power_on	= shooter_qs_s5k4e1_vreg_on,
+	.camera_power_off	= shooter_qs_s5k4e1_vreg_off,
+	.camera_clk_switch	= shooter_maincam_clk_switch,
 	.pdata			= &msm_camera_device_data_qs_s5k4e1,
 	.resource		= msm_camera_resources,
-	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.num_resources		= ARRAY_SIZE(msm_camera_resources),
 	.flash_data		= &flash_qs_s5k4e1,
-	.flash_cfg = &msm_camera_sensor_flash_cfg,
-	.stereo_low_cap_limit = 15,
+	.flash_cfg		= &msm_camera_sensor_flash_cfg,
+	.stereo_low_cap_limit	= 15,
 	.csi_if			= 1,
 	.dev_node		= 0,
 	.eeprom_data		= eeprom_data,
 };
+
 struct platform_device msm_camera_sensor_qs_s5k4e1 = {
 	.name	= "msm_camera_qs_s5k4e1",
 	.dev	= {
@@ -485,10 +487,9 @@ struct platform_device msm_camera_sensor_qs_s5k4e1 = {
 
 static struct i2c_board_info msm_qs_s5k4e1_camera_boardinfo[] __initdata = {
 	{
-        I2C_BOARD_INFO("qs_s5k4e1", 0x20),
+		I2C_BOARD_INFO("qs_s5k4e1", 0x20),
 	},
 };
-
 #endif
 
 #ifdef CONFIG_S5K6AAFX
