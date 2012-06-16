@@ -15,7 +15,7 @@ obj-$(CONFIG_OV8830) += ov8830.o
 obj-$(CONFIG_MT9D015) += mt9d015.o
 obj-$(CONFIG_OV2720) += ov2720.o
 obj-$(CONFIG_SP3D) += sp3d.o
-obj-$(CONFIG_QS_S5K4E1) += qs_s5k4e1.o
+obj-$(CONFIG_QS_S5K4E1_HTC) += qs_s5k4e1.o
 
 obj-$(CONFIG_MACH_HOLIDAY) += s5k3h2yx_reg_holiday.o s5k6aafx_reg_holiday.o s5k6aafx_reg_holiday_cob.o
 obj-$(CONFIG_MACH_VIGOR) += s5k3h2yx_reg_vigor.o ov8830_reg_vigor.o mt9d015_reg_vigor.o

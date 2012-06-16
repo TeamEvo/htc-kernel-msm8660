@@ -268,7 +268,7 @@ config SP3D
 	---help---
 	  SHARP 3D Module
 
-config QS_S5K4E1
+config QS_S5K4E1_HTC
 	bool "Sensor qs_s5k4e1 (Samsung 5M)"
 	depends on MSM_CAMERA && ARCH_MSM8X60 && !MSM_CAMERA_V4L2
 	default n

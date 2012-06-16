@@ -2855,6 +2855,13 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 		ARRAY_SIZE(msm_s5k6aafx_camera_boardinfo),
 	},
 #endif
+#ifdef CONFIG_QS_S5K4E1_HTC
+	{
+		MSM_GSBI4_QUP_I2C_BUS_ID,
+		msm_qs_s5k4e1_camera_boardinfo,
+		ARRAY_SIZE(msm_qs_s5k4e1_camera_boardinfo),
+	},
+#endif
 #ifdef CONFIG_MSM8X60_AUDIO
 	{
 		MSM_GSBI7_QUP_I2C_BUS_ID,
@@ -2963,6 +2970,9 @@ static struct platform_device *devices[] __initdata = {
 #endif
 #ifdef CONFIG_S5K6AAFX
 	&msm_camera_sensor_s5k6aafx,
+#endif
+#ifdef CONFIG_QS_S5K4E1_HTC
+	&msm_camera_sensor_qs_s5k4e1,
 #endif
 #ifdef CONFIG_MSM_GEMINI
 	&msm_gemini_device,
