@@ -25,6 +25,11 @@ enum clk_reset_action {
 
 struct clk;
 
+#ifdef CONFIG_HTC_DEVICE
+/* Rate is minimum clock rate in Hz */
+int clk_set_min_rate(struct clk *clk, unsigned long rate);
+#endif
+
 /* Rate is maximum clock rate in Hz */
 int clk_set_max_rate(struct clk *clk, unsigned long rate);
 
