@@ -72,6 +72,9 @@ struct clk_ops {
 	int (*handoff)(struct clk *clk);
 	int (*reset)(struct clk *clk, enum clk_reset_action action);
 	int (*set_rate)(struct clk *clk, unsigned long rate);
+#ifdef CONFIG_HTC_DEVICE
+	int (*set_min_rate)(struct clk *clk, unsigned long rate);
+#endif
 	int (*set_max_rate)(struct clk *clk, unsigned long rate);
 	int (*set_flags)(struct clk *clk, unsigned flags);
 	unsigned long (*get_rate)(struct clk *clk);

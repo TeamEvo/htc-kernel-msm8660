@@ -406,6 +406,20 @@ static struct resource gsbi4_qup_i2c_resources[] = {
 		.end	= GSBI4_QUP_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#ifdef CONFIG_HTC_DEVICE
+	{
+		.name	= "i2c_clk",
+		.start	= 48,
+		.end	= 48,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "i2c_sda",
+		.start	= 47,
+		.end	= 47,
+		.flags	= IORESOURCE_IO,
+	},
+#endif
 };
 
 static struct resource gsbi5_qup_i2c_resources[] = {
@@ -1093,6 +1107,30 @@ static struct resource gsbi2_qup_spi_resources[] = {
         .end    = 7,
         .flags  = IORESOURCE_DMA,
     },
+	{
+		.name   = "spi_clk",
+		.start  = 40,
+		.end    = 40,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_miso",
+		.start  = 38,
+		.end    = 38,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_mosi",
+		.start  = 37,
+		.end    = 37,
+		.flags  = IORESOURCE_IO,
+	},
+	{
+		.name   = "spi_cs",
+		.start  = 39,
+		.end    = 39,
+		.flags  = IORESOURCE_IO,
+	},
 };
 
 /* Use GSBI2 QUP for SPI-1 */

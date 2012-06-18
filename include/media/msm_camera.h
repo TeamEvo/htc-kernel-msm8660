@@ -523,16 +523,7 @@ struct outputCfg {
 #define OUTPUT_1_AND_CAMIF_TO_AXI_VIA_OUTPUT_2 5
 #define OUTPUT_2_AND_CAMIF_TO_AXI_VIA_OUTPUT_1 6
 #define OUTPUT_1_2_AND_3 7
-#define OUTPUT_ALL_CHNLS 8
-#define OUTPUT_VIDEO_ALL_CHNLS 9
-#define OUTPUT_ZSL_ALL_CHNLS 10
-#define LAST_AXI_OUTPUT_MODE_ENUM = OUTPUT_ZSL_ALL_CHNLS
-
-#define OUTPUT_PRIM		0xF1
-#define OUTPUT_PRIM_ALL_CHNLS	0xF2
-#define OUTPUT_SEC		0xF4
-#define OUTPUT_SEC_ALL_CHNLS	0xF8
-
+#define LAST_AXI_OUTPUT_MODE_ENUM = OUTPUT_1_2_AND_3 7
 
 #define MSM_FRAME_PREV_1	0
 #define MSM_FRAME_PREV_2	1
@@ -767,15 +758,46 @@ struct msm_snapshot_pp_status {
 #define CFG_GET_EEPROM_DATA		33
 #define CFG_SET_ACTUATOR_INFO		34
 #define CFG_GET_ACTUATOR_INFO		35
-#define CFG_MAX			36
+#ifdef CONFIG_HTC_DEVICE /* HTC_START Hayden Huang 20111006 YUV Sensor */
+#define CFG_SET_SHARPNESS 36
+#define CFG_SET_SATURATION 37
+#define CFG_SET_OV_LSC_RAW_CAPTURE 38
+#define CFG_SET_ISO			39
+#define CFG_SET_COORDINATE		40
+#define CFG_RUN_AUTO_FOCUS		41
+#define CFG_CANCEL_AUTO_FOCUS		42
+#define CFG_GET_EXP_FOR_LED		43
+#define CFG_UPDATE_AEC_FOR_LED		44
+#define CFG_SET_FRONT_CAMERA_MODE	45
+#define CFG_SET_QCT_LSC_RAW_CAPTURE 46
+#define CFG_SET_QTR_SIZE_MODE		47
+#define CFG_GET_AF_STATE		48
+#define CFG_SET_DMODE			49
+#define CFG_SET_CALIBRATION	50
+#define CFG_SET_AF_MODE		51
+#define CFG_GET_SP3D_L_FRAME	52
+#define CFG_GET_SP3D_R_FRAME	53
+#define CFG_SET_FLASHLIGHT		54
+#define CFG_SET_FLASHLIGHT_EXP_DIV 55
+#define CFG_GET_ISO             56
+#define CFG_GET_EXP_GAIN	57
+#define CFG_SET_FRAMERATE 	58
+#endif /* HTC_END Hayden Huang 20111006 YUV Sensor */
+#define CFG_MAX			59
 
+/* HTC_START */
+// Ray add for read fuse id command
+#define CFG_I2C_IOCTL_R_OTP 70
+/* HTC_END */
 
 #define MOVE_NEAR	0
 #define MOVE_FAR	1
 
-#define SENSOR_PREVIEW_MODE		0
-#define SENSOR_SNAPSHOT_MODE		1
-#define SENSOR_RAW_SNAPSHOT_MODE	2
+/* HTC_START Angie 20111019 - Full Size Preview */
+#define SENSOR_PREVIEW_MODE		0 /* SENSOR_MODE_PREVIEW, SENSOR_MODE_VIDEO, SENSOR_MODE_FULL_SIZE_PREVIEW */
+#define SENSOR_SNAPSHOT_MODE		1 /* SENSOR_MODE_SNAPSHOT */
+#define SENSOR_RAW_SNAPSHOT_MODE	2 /* SENSOR_MODE_RAW_SNAPSHOT */
+/* HTC_END */
 #define SENSOR_HFR_60FPS_MODE 3
 #define SENSOR_HFR_90FPS_MODE 4
 #define SENSOR_HFR_120FPS_MODE 5
@@ -858,8 +880,10 @@ struct msm_snapshot_pp_status {
 #define CAMERA_SETAE_AVERAGE		0
 #define CAMERA_SETAE_CENWEIGHT	1
 
+#ifndef CONFIG_HTC_DEVICE
 #define CFG_SET_SATURATION		30
 #define CFG_SET_SHARPNESS			31
+#endif
 #define CFG_SET_TOUCHAEC            32
 #define CFG_SET_AUTO_FOCUS          33
 #define CFG_SET_AUTOFLASH 34
@@ -1052,6 +1076,11 @@ struct msm_sensor_output_info_t {
 struct sensor_output_info_t {
 	struct msm_sensor_output_info_t *output_info;
 	uint16_t num_info;
+ /* HTC_START Angie 20111019 - Fix FPS */
+	uint16_t vert_offset;
+	uint16_t min_vert;
+	int mirror_flip;
+/* HTC_END */
 };
 
 struct sensor_eeprom_data_t {
@@ -1059,16 +1088,98 @@ struct sensor_eeprom_data_t {
 	uint16_t index;
 };
 
-struct mirror_flip {
-	int32_t x_mirror;
-	int32_t y_flip;
+#if 1 /* HTC_START Hayden Huang 20111006 YUV Sensor */
+enum antibanding_mode{
+	CAMERA_ANTI_BANDING_50HZ,
+	CAMERA_ANTI_BANDING_60HZ,
+	CAMERA_ANTI_BANDING_AUTO,
 };
 
-struct cord {
-	uint32_t x;
-	uint32_t y;
+enum brightness_t{
+	CAMERA_BRIGHTNESS_N3,
+	CAMERA_BRIGHTNESS_N2,
+	CAMERA_BRIGHTNESS_N1,
+	CAMERA_BRIGHTNESS_D,
+	CAMERA_BRIGHTNESS_P1,
+	CAMERA_BRIGHTNESS_P2,
+	CAMERA_BRIGHTNESS_P3,
+	CAMERA_BRIGHTNESS_P4,
+	CAMERA_BRIGHTNESS_N4,
 };
 
+enum frontcam_t{
+	CAMERA_MIRROR,
+	CAMERA_REVERSE,
+	CAMERA_PORTRAIT_REVERSE, /* 0916 for 3rd party */
+};
+
+enum wb_mode{
+	CAMERA_AWB_AUTO,/*auto*/
+	CAMERA_AWB_CLOUDY,/*Cloudy*/
+	CAMERA_AWB_INDOOR_HOME,/*Fluorescent*/
+	CAMERA_AWB_INDOOR_OFFICE,/*Incandescent*/
+	CAMERA_AWB_SUNNY,/*daylight*/
+};
+
+enum iso_mode{
+  CAMERA_ISO_AUTO = 0,
+  CAMERA_ISO_DEBLUR,
+  CAMERA_ISO_100,
+  CAMERA_ISO_200,
+  CAMERA_ISO_400,
+  CAMERA_ISO_800,
+  CAMERA_ISO_1250,
+  CAMERA_ISO_1600,
+  CAMERA_ISO_MAX
+};
+
+enum sharpness_mode{
+	CAMERA_SHARPNESS_X0,
+	CAMERA_SHARPNESS_X1,
+	CAMERA_SHARPNESS_X2,
+	CAMERA_SHARPNESS_X3,
+	CAMERA_SHARPNESS_X4,
+	CAMERA_SHARPNESS_X5,
+	CAMERA_SHARPNESS_X6,
+};
+
+enum saturation_mode{
+	CAMERA_SATURATION_X0,
+	CAMERA_SATURATION_X05,
+	CAMERA_SATURATION_X1,
+	CAMERA_SATURATION_X15,
+	CAMERA_SATURATION_X2,
+};
+
+enum contrast_mode{
+	CAMERA_CONTRAST_P2,
+	CAMERA_CONTRAST_P1,
+	CAMERA_CONTRAST_D,
+	CAMERA_CONTRAST_N1,
+	CAMERA_CONTRAST_N2,
+};
+
+enum qtr_size_mode{
+	NORMAL_QTR_SIZE_MODE,
+	LARGER_QTR_SIZE_MODE,
+};
+
+enum sensor_af_mode{
+	SENSOR_AF_MODE_AUTO,
+	SENSOR_AF_MODE_NORMAL,
+	SENSOR_AF_MODE_MACRO,
+};
+#endif /* HTC_END Hayden Huang 20111006 YUV Sensor */
+
+/* HTC_START */
+// Ray add fuse id structure
+struct fuse_id{
+	uint32_t fuse_id_word1;
+	uint32_t fuse_id_word2;
+	uint32_t fuse_id_word3;
+	uint32_t fuse_id_word4;
+};
+/* HTC_END */
 struct sensor_cfg_data {
 	int cfgtype;
 	int mode;
@@ -1094,18 +1205,22 @@ struct sensor_cfg_data {
 		struct sensor_calib_data calib_info;
 		struct sensor_output_info_t output_info;
 		struct sensor_eeprom_data_t eeprom_data;
-		/* QRD */
-		uint16_t antibanding;
-		uint8_t contrast;
-		uint8_t saturation;
-		uint8_t sharpness;
-		int8_t brightness;
-		int ae_mode;
-		uint8_t wb_val;
-		int8_t exp_compensation;
-		struct cord aec_cord;
-		int is_autoflash;
-		struct mirror_flip mirror_flip;
+		/* HTC_START */
+		/* Ray add fuse to member */
+		struct fuse_id fuse;
+		/* HTC_END */
+#if 1 /* HTC_START Hayden Huang 20111006 YUV Sensor */
+		enum antibanding_mode antibanding_value;
+		enum brightness_t brightness_value;
+		enum frontcam_t frontcam_value;
+		enum wb_mode wb_value;
+		enum iso_mode iso_value;
+		enum sharpness_mode sharpness_value;
+		enum saturation_mode saturation_value;
+		enum contrast_mode  contrast_value;
+		enum qtr_size_mode qtr_size_mode_value;
+		enum sensor_af_mode af_mode_value;
+#endif /* HTC_END Hayden Huang 20111006 YUV Sensor */
 	} cfg;
 };
 
@@ -1169,6 +1284,11 @@ enum strobe_flash_ctrl_type {
 	STROBE_FLASH_CTRL_RELEASE
 };
 
+struct msm_mctl_node_info {
+	int num_mctl_nodes;
+	const char *mctl_node_name[MSM_MAX_CAMERA_SENSORS];
+};
+
 struct strobe_flash_ctrl_data {
 	enum strobe_flash_ctrl_type type;
 	int charge_en;
@@ -1188,11 +1308,6 @@ struct msm_cam_config_dev_info {
 	int num_config_nodes;
 	const char *config_dev_name[MSM_MAX_CAMERA_CONFIGS];
 	int config_dev_id[MSM_MAX_CAMERA_CONFIGS];
-};
-
-struct msm_mctl_node_info {
-	int num_mctl_nodes;
-	const char *mctl_node_name[MSM_MAX_CAMERA_SENSORS];
 };
 
 struct flash_ctrl_data {
