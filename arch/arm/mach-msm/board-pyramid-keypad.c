@@ -1,7 +1,6 @@
 /* arch/arm/mach-msm/board-pyramid-keypad.c
  *
  * Copyright (C) 2008 Google, Inc.
- * Copyright (C) 2012 The CyanogenMod Project.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -11,40 +10,22 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
+ *
  */
 
 #include <linux/platform_device.h>
-#include <linux/input.h>
-#include <linux/interrupt.h>
 #include <linux/gpio_event.h>
-#include <linux/keyreset.h>
-#include <asm/mach-types.h>
 #include <linux/gpio.h>
+#include <linux/keyreset.h>
 #include <mach/gpio.h>
 
 #include "board-htc8x60.h"
 
-#include <linux/mfd/pmic8058.h>
-#include <linux/input/pmic8058-keypad.h>
+#include <mach/board-msm8660.h>
 
-/* Macros assume PMIC GPIOs start at 0 */
-#define PM8058_GPIO_BASE			NR_MSM_GPIOS
-#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_GPIO_BASE)
-#define PM8058_GPIO_SYS_TO_PM(sys_gpio)		(sys_gpio - PM8058_GPIO_BASE)
-#define PM8058_MPP_BASE			(PM8058_GPIO_BASE + PM8058_GPIOS)
-#define PM8058_MPP_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_MPP_BASE)
-#define PM8058_MPP_SYS_TO_PM(sys_gpio)		(sys_gpio - PM8058_MPP_BASE)
-#define PM8058_IRQ_BASE				(NR_MSM_IRQS + NR_GPIO_IRQS)
-
-#define PM8901_GPIO_BASE			(PM8058_GPIO_BASE + \
-						PM8058_GPIOS + PM8058_MPPS)
-#define PM8901_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8901_GPIO_BASE)
-#define PM8901_GPIO_SYS_TO_PM(sys_gpio)		(sys_gpio - PM901_GPIO_BASE)
-#define PM8901_IRQ_BASE				(PM8058_IRQ_BASE + \
-						NR_PMIC8058_IRQS)
 static char *keycaps = "--qwerty";
 #undef MODULE_PARAM_PREFIX
-#define MODULE_PARAM_PREFIX "board_htc8x60."
+#define MODULE_PARAM_PREFIX "board_pyramid."
 module_param_named(keycaps, keycaps, charp, 0);
 
 static struct gpio_event_direct_entry htc8x60_keypad_input_map[] = {
@@ -62,18 +43,17 @@ static struct gpio_event_direct_entry htc8x60_keypad_input_map[] = {
 	},
 };
 
-static uint32_t inputs_gpio_table[] = {
-		GPIO_CFG(HTC8X60_GPIO_KEY_POWER, 0, GPIO_CFG_INPUT,
-			 GPIO_CFG_PULL_UP, GPIO_CFG_4MA),
-	};
-
-static void htc8x60_setup_input_gpio(void)
+static void htc8x60_gpio_event_input_init(void)
 {
-	gpio_tlmm_config(inputs_gpio_table[0], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(GPIO_CFG(HTC8X60_GPIO_KEY_POWER, 0, GPIO_CFG_INPUT,
+				GPIO_CFG_PULL_UP, GPIO_CFG_4MA), GPIO_CFG_ENABLE);
+
+	enable_irq_wake(MSM_GPIO_TO_INT(HTC8X60_GPIO_KEY_POWER));
 }
 
 static struct gpio_event_input_info htc8x60_keypad_input_info = {
 	.info.func = gpio_event_input_func,
+	.info.no_suspend = true,
 	.flags = GPIOEDF_PRINT_KEYS,
 	.type = EV_KEY,
 #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
@@ -83,17 +63,23 @@ static struct gpio_event_input_info htc8x60_keypad_input_info = {
 # endif
 	.keymap = htc8x60_keypad_input_map,
 	.keymap_size = ARRAY_SIZE(htc8x60_keypad_input_map),
-	.setup_input_gpio = htc8x60_setup_input_gpio,
 };
 
 static struct gpio_event_info *htc8x60_keypad_info[] = {
 	&htc8x60_keypad_input_info.info,
 };
 
+static int htc8x60_gpio_keypad_power(
+		const struct gpio_event_platform_data *pdata, bool on)
+{
+	return 0;
+}
+
 static struct gpio_event_platform_data htc8x60_keypad_data = {
-	.name = "htc8x60-keypad",
+	.name = "pyramid-keypad",
 	.info = htc8x60_keypad_info,
 	.info_count = ARRAY_SIZE(htc8x60_keypad_info),
+	.power = htc8x60_gpio_keypad_power,
 };
 
 static struct platform_device htc8x60_keypad_input_device = {
@@ -104,15 +90,7 @@ static struct platform_device htc8x60_keypad_input_device = {
 	},
 };
 
-/*
-static int htc8x60_reset_keys_up[] = {
-	KEY_VOLUMEUP,
-	0
-};
-*/
-
 static struct keyreset_platform_data htc8x60_reset_keys_pdata = {
-	/* .keys_up = htc8x60_reset_keys_up, */
 	.keys_down = {
 		KEY_POWER,
 		KEY_VOLUMEDOWN,
@@ -126,12 +104,11 @@ struct platform_device htc8x60_reset_keys_device = {
 	.dev.platform_data = &htc8x60_reset_keys_pdata,
 };
 
-int __init htc8x60_init_keypad(void)
+void __init htc8x60_init_keypad(void)
 {
-	printk(KERN_DEBUG "%s\n", __func__);
-
 	if (platform_device_register(&htc8x60_reset_keys_device))
 		printk(KERN_WARNING "%s: register reset key fail\n", __func__);
 
-	return platform_device_register(&htc8x60_keypad_input_device);
+	htc8x60_gpio_event_input_init();
+	platform_device_register(&htc8x60_keypad_input_device);
 }
