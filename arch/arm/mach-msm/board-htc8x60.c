@@ -102,7 +102,7 @@ unsigned engineerid, mem_size_mb;
 void sysinfo_proc_init(void);
 
 #ifdef CONFIG_MSM_CAMERA
-#include "board-shooter-camera.c"
+#include "board-htc8x60-camera.c"
 #endif
 
 struct pm8xxx_mpp_init_info {
