@@ -32,42 +32,42 @@ static struct resource msm_camera_resources[] = {
 static void config_gpio_table(uint32_t *table, int len);
 
 static uint32_t camera_off_gpio_table[] = {
-	GPIO_CFG(SHOOTER_CAM_I2C_SDA,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
-	GPIO_CFG(SHOOTER_CAM_I2C_SCL,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
-	GPIO_CFG(SHOOTER_SP3D_MCLK,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*MCLK*/
-	GPIO_CFG(SHOOTER_SP3D_INT,	 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),/*sharp INT*/
-	GPIO_CFG(SHOOTER_SP3D_SPI_DO,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_DI,	 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CS,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CLK,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_GATE,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SYS_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_PDX,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_WEBCAM_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera reset*/
-	GPIO_CFG(SHOOTER_WEBCAM_STB,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera standby*/
-	GPIO_CFG(SHOOTER_CAM_SEL,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera switch*/
+	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
+	GPIO_CFG(HTC8X60_SP3D_MCLK,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(HTC8X60_SP3D_INT,	 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),/*sharp INT*/
+	GPIO_CFG(HTC8X60_SP3D_SPI_DO,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_DI,	 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CS,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CLK,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_GATE,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SYS_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_PDX,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_WEBCAM_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera reset*/
+	GPIO_CFG(HTC8X60_WEBCAM_STB,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera standby*/
+	GPIO_CFG(HTC8X60_CAM_SEL,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_2MA),/*camera switch*/
 };
 
 static uint32_t camera_on_gpio_table[] = {
-	GPIO_CFG(SHOOTER_CAM_I2C_SDA,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_CAM_I2C_SCL,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_SP3D_MCLK,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
-	GPIO_CFG(SHOOTER_SP3D_INT,	 0, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_DO,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_DI,	 1, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CS,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CLK,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_GATE,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_SYS_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_SP3D_PDX,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_WEBCAM_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_WEBCAM_STB,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_CAM_SEL,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_SP3D_MCLK,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),/*MCLK*/
+	GPIO_CFG(HTC8X60_SP3D_INT,	 0, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_DO,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_DI,	 1, GPIO_CFG_INPUT,  GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CS,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CLK,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_GATE,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_CORE_GATE, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_SYS_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_SP3D_PDX,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_WEBCAM_RST,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_WEBCAM_STB,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	GPIO_CFG(HTC8X60_CAM_SEL,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 };
 
-static int shooter_config_camera_on_gpios(void)
+static int htc8x60_config_camera_on_gpios(void)
 {
 	config_gpio_table(camera_on_gpio_table,
 		ARRAY_SIZE(camera_on_gpio_table));
@@ -150,23 +150,23 @@ static int camera_sensor_power_disable(char *power)
 }
 
 #if defined(CONFIG_SP3D) || defined(CONFIG_QS_S5K4E1_HTC)
-static void shooter_maincam_clk_switch(void)
+static void htc8x60_maincam_clk_switch(void)
 {
 	pr_info("[CAM] Doing clk switch (Main Cam)\n");
-	gpio_set_value(SHOOTER_CAM_SEL, 0);
+	gpio_set_value(HTC8X60_CAM_SEL, 0);
 }
 #endif
 
 #ifdef CONFIG_SP3D
 static uint32_t sp3d_spi_gpio[] = {
 	/* or this? the i/o direction and up/down are much more correct */
-	GPIO_CFG(SHOOTER_SP3D_SPI_DO,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_DI,  1, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CS,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,   GPIO_CFG_8MA),
-	GPIO_CFG(SHOOTER_SP3D_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_DO,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_DI,  1, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CS,  1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP,   GPIO_CFG_8MA),
+	GPIO_CFG(HTC8X60_SP3D_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),
 };
 
-static int shooter_sp3d_vreg_on(void)
+static int htc8x60_sp3d_vreg_on(void)
 {
 	int rc;
 
@@ -188,10 +188,10 @@ static int shooter_sp3d_vreg_on(void)
 		pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);
 	}
 
-	gpio_set_value(SHOOTER_SP3D_CORE_GATE, 1); // CORE GATE
-	gpio_set_value(SHOOTER_SP3D_SYS_RST, 1); // RST
-	gpio_set_value(SHOOTER_SP3D_PDX, 1); // PDX
-	gpio_set_value(SHOOTER_SP3D_GATE, 1); // GATE
+	gpio_set_value(HTC8X60_SP3D_CORE_GATE, 1); // CORE GATE
+	gpio_set_value(HTC8X60_SP3D_SYS_RST, 1); // RST
+	gpio_set_value(HTC8X60_SP3D_PDX, 1); // PDX
+	gpio_set_value(HTC8X60_SP3D_GATE, 1); // GATE
 
 	/* main camera AVDD */
 	rc = camera_sensor_power_enable("8058_l15", 2800000);
@@ -208,13 +208,13 @@ static int shooter_sp3d_vreg_on(void)
 	return rc;
 }
 
-static int shooter_sp3d_vreg_off(void)
+static int htc8x60_sp3d_vreg_off(void)
 {
 	int rc;
 
 	pr_info("[CAM] %s\n", __func__);
 
-	gpio_set_value(SHOOTER_SP3D_PDX, 0); // PDX
+	gpio_set_value(HTC8X60_SP3D_PDX, 0); // PDX
 	/* main camera MVDD */
 	rc = camera_sensor_power_disable("8058_l10");
 	udelay(10);
@@ -232,9 +232,9 @@ static int shooter_sp3d_vreg_off(void)
 	else
 		rc = camera_sensor_power_disable("8058_l9");
 
-	gpio_set_value(SHOOTER_SP3D_SYS_RST, 0); // RST
-	gpio_set_value(SHOOTER_SP3D_CORE_GATE, 0); // CORE GATE
-	gpio_set_value(SHOOTER_SP3D_GATE, 0); // GATE
+	gpio_set_value(HTC8X60_SP3D_SYS_RST, 0); // RST
+	gpio_set_value(HTC8X60_SP3D_CORE_GATE, 0); // CORE GATE
+	gpio_set_value(HTC8X60_SP3D_GATE, 0); // GATE
 
 	/*VDDIO*/
 	if ((system_rev == 2 && engineerid >= 3) || system_rev == 0x80)
@@ -245,21 +245,21 @@ static int shooter_sp3d_vreg_off(void)
 	return rc;
 }
 
-static void shooter_config_camera_off_gpios(void)
+static void htc8x60_config_camera_off_gpios(void)
 {
 	config_gpio_table(camera_off_gpio_table,
 		ARRAY_SIZE(camera_off_gpio_table));
 
-	gpio_set_value(SHOOTER_SP3D_SPI_DO, 0);
-	gpio_set_value(SHOOTER_SP3D_SPI_CS, 0);
-	gpio_set_value(SHOOTER_SP3D_SPI_CLK, 0);
-	gpio_set_value(SHOOTER_SP3D_MCLK, 0);
-	gpio_set_value(SHOOTER_CAM_SEL, 0);
+	gpio_set_value(HTC8X60_SP3D_SPI_DO, 0);
+	gpio_set_value(HTC8X60_SP3D_SPI_CS, 0);
+	gpio_set_value(HTC8X60_SP3D_SPI_CLK, 0);
+	gpio_set_value(HTC8X60_SP3D_MCLK, 0);
+	gpio_set_value(HTC8X60_CAM_SEL, 0);
 }
 
 static struct msm_camera_device_platform_data msm_camera_device_data_sp3d = {
-	.camera_gpio_on		= shooter_config_camera_on_gpios,
-	.camera_gpio_off	= shooter_config_camera_off_gpios,
+	.camera_gpio_on		= htc8x60_config_camera_on_gpios,
+	.camera_gpio_off	= htc8x60_config_camera_off_gpios,
 	.ioext.csiphy		= 0x04800000,
 	.ioext.csisz		= 0x00000400,
 	.ioext.csiirq		= CSI_0_IRQ,
@@ -304,9 +304,9 @@ static struct msm_camera_sensor_flash_data flash_sp3d = {
 static struct msm_camera_sensor_info msm_camera_sensor_sp3d_data = {
 	.sensor_name		= "sp3d",
 	.vcm_enable		= 0,
-	.camera_power_on	= shooter_sp3d_vreg_on,
-	.camera_power_off	= shooter_sp3d_vreg_off,
-	.camera_clk_switch	= shooter_maincam_clk_switch,
+	.camera_power_on	= htc8x60_sp3d_vreg_on,
+	.camera_power_off	= htc8x60_sp3d_vreg_off,
+	.camera_clk_switch	= htc8x60_maincam_clk_switch,
 	.pdata			= &msm_camera_device_data_sp3d,
 	.resource		= msm_camera_resources,
 	.num_resources		= ARRAY_SIZE(msm_camera_resources),
@@ -335,9 +335,9 @@ static void __init sp3d_init_camera(void)
 static void config_flashlight_gpios(void)
 {
 	static uint32_t flashlight_gpio_table[] = {
-		GPIO_CFG(SHOOTER_TORCH_EN, 0, GPIO_CFG_OUTPUT,
+		GPIO_CFG(HTC8X60_TORCH_EN, 0, GPIO_CFG_OUTPUT,
 			GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-		GPIO_CFG(SHOOTER_FLASH_EN, 0, GPIO_CFG_OUTPUT,
+		GPIO_CFG(HTC8X60_FLASH_EN, 0, GPIO_CFG_OUTPUT,
 			GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 	};
 
@@ -347,10 +347,10 @@ static void config_flashlight_gpios(void)
 
 static struct flashlight_platform_data flashlight_data = {
 	.gpio_init		= config_flashlight_gpios,
-	.torch			= SHOOTER_TORCH_EN,
-	.flash			= SHOOTER_FLASH_EN,
-	.torch_set1		= PM8058_GPIO_PM_TO_SYS(SHOOTER_TORCH_SET1),
-	.torch_set2		= PM8058_GPIO_PM_TO_SYS(SHOOTER_TORCH_SET2),
+	.torch			= HTC8X60_TORCH_EN,
+	.flash			= HTC8X60_FLASH_EN,
+	.torch_set1		= PM8058_GPIO_PM_TO_SYS(HTC8X60_TORCH_SET1),
+	.torch_set2		= PM8058_GPIO_PM_TO_SYS(HTC8X60_TORCH_SET2),
 	.flash_duration_ms	= 600,
 	.chip_model		= AAT1277,
 };
@@ -364,7 +364,7 @@ static struct platform_device flashlight_device = {
 #endif
 
 #ifdef CONFIG_QS_S5K4E1_HTC
-static int shooter_qs_s5k4e1_vreg_on(void)
+static int htc8x60_qs_s5k4e1_vreg_on(void)
 {
 	int rc;
 	pr_info("[CAM] %s\n", __func__);
@@ -396,20 +396,20 @@ static int shooter_qs_s5k4e1_vreg_on(void)
 	pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2800) == %d\n", rc);
 	udelay(50);
 
-	gpio_set_value(SHOOTER_S5K4E1_INTB, 1);
-	gpio_set_value(SHOOTER_S5K4E1_PD, 1);
-	gpio_set_value(SHOOTER_S5K4E1_VCM_PD, 1);
+	gpio_set_value(HTC8X60_S5K4E1_INTB, 1);
+	gpio_set_value(HTC8X60_S5K4E1_PD, 1);
+	gpio_set_value(HTC8X60_S5K4E1_VCM_PD, 1);
 
 	return rc;
 }
 
-static int shooter_qs_s5k4e1_vreg_off(void)
+static int htc8x60_qs_s5k4e1_vreg_off(void)
 {
 	int rc;
 	pr_info("[CAM] %s\n", __func__);
-	gpio_set_value(SHOOTER_S5K4E1_INTB, 0); // interrupt
-	gpio_set_value(SHOOTER_S5K4E1_VCM_PD, 0); // PDX
-	gpio_set_value(SHOOTER_S5K4E1_PD, 0); // RST
+	gpio_set_value(HTC8X60_S5K4E1_INTB, 0); // interrupt
+	gpio_set_value(HTC8X60_S5K4E1_VCM_PD, 0); // PDX
+	gpio_set_value(HTC8X60_S5K4E1_PD, 0); // RST
 
 	/* main camera AVDD */
 	rc = camera_sensor_power_disable("8058_l10");
@@ -451,8 +451,8 @@ static struct msm_camera_sensor_flash_data flash_qs_s5k4e1 = {
 };
 
 static struct msm_camera_device_platform_data msm_camera_device_data_qs_s5k4e1 = {
-	.camera_gpio_on		= shooter_config_camera_on_gpios,
-	.camera_gpio_off	= shooter_config_camera_off_gpios,
+	.camera_gpio_on		= htc8x60_config_camera_on_gpios,
+	.camera_gpio_off	= htc8x60_config_camera_off_gpios,
 	.ioext.csiphy		= 0x04800000,
 	.ioext.csisz		= 0x00000400,
 	.ioext.csiirq		= CSI_0_IRQ,
@@ -462,11 +462,11 @@ static struct msm_camera_device_platform_data msm_camera_device_data_qs_s5k4e1 =
 
 static struct msm_camera_sensor_info msm_camera_sensor_qs_s5k4e1_data = {
 	.sensor_name		= "qs_s5k4e1",
-	.sensor_reset		= SHOOTER_S5K4E1_PD,
+	.sensor_reset		= HTC8X60_S5K4E1_PD,
 	.vcm_enable		= 0,
-	.camera_power_on	= shooter_qs_s5k4e1_vreg_on,
-	.camera_power_off	= shooter_qs_s5k4e1_vreg_off,
-	.camera_clk_switch	= shooter_maincam_clk_switch,
+	.camera_power_on	= htc8x60_qs_s5k4e1_vreg_on,
+	.camera_power_off	= htc8x60_qs_s5k4e1_vreg_off,
+	.camera_clk_switch	= htc8x60_maincam_clk_switch,
 	.pdata			= &msm_camera_device_data_qs_s5k4e1,
 	.resource		= msm_camera_resources,
 	.num_resources		= ARRAY_SIZE(msm_camera_resources),
@@ -493,7 +493,7 @@ static struct i2c_board_info msm_qs_s5k4e1_camera_boardinfo[] __initdata = {
 #endif
 
 #ifdef CONFIG_S5K6AAFX
-static int shooter_s5k6aafx_vreg_on(void)
+static int htc8x60_s5k6aafx_vreg_on(void)
 {
 	int rc;
 
@@ -523,7 +523,7 @@ static int shooter_s5k6aafx_vreg_on(void)
 	return rc;
 }
 
-static int shooter_s5k6aafx_vreg_off(void)
+static int htc8x60_s5k6aafx_vreg_off(void)
 {
 	int rc;
 
@@ -551,10 +551,10 @@ static int shooter_s5k6aafx_vreg_off(void)
 	return rc;
 }
 
-static void shooter_seccam_clk_switch(void)
+static void htc8x60_seccam_clk_switch(void)
 {
 	pr_info("[CAM] Doing clk switch (2nd Cam)\n");
-	gpio_set_value(SHOOTER_CAM_SEL, 1);
+	gpio_set_value(HTC8X60_CAM_SEL, 1);
 }
 
 static struct msm_camera_sensor_flash_data flash_s5k6aafx = {
@@ -562,8 +562,8 @@ static struct msm_camera_sensor_flash_data flash_s5k6aafx = {
 };
 
 static struct msm_camera_device_platform_data msm_camera_device_data_s5k6aafx = {
-	.camera_gpio_on		= shooter_config_camera_on_gpios,
-	.camera_gpio_off	= shooter_config_camera_off_gpios,
+	.camera_gpio_on		= htc8x60_config_camera_on_gpios,
+	.camera_gpio_off	= htc8x60_config_camera_off_gpios,
 	.ioext.csiphy		= 0x04900000,
 	.ioext.csisz		= 0x00000400,
 	.ioext.csiirq		= CSI_1_IRQ,
@@ -573,12 +573,12 @@ static struct msm_camera_device_platform_data msm_camera_device_data_s5k6aafx = 
 
 static struct msm_camera_sensor_info msm_camera_sensor_s5k6aafx_data = {
 	.sensor_name		= "s5k6aafx",
-	.sensor_reset		= SHOOTER_WEBCAM_RST,/*2nd Cam RST*/
-	.sensor_pwd		= SHOOTER_WEBCAM_STB,/*2nd Cam PWD*/
+	.sensor_reset		= HTC8X60_WEBCAM_RST,/*2nd Cam RST*/
+	.sensor_pwd		= HTC8X60_WEBCAM_STB,/*2nd Cam PWD*/
 	.vcm_enable		= 0,
-	.camera_power_on	= shooter_s5k6aafx_vreg_on,
-	.camera_power_off	= shooter_s5k6aafx_vreg_off,
-	.camera_clk_switch	= shooter_seccam_clk_switch,
+	.camera_power_on	= htc8x60_s5k6aafx_vreg_on,
+	.camera_power_off	= htc8x60_s5k6aafx_vreg_off,
+	.camera_clk_switch	= htc8x60_seccam_clk_switch,
 	.pdata			= &msm_camera_device_data_s5k6aafx, /* Fro front CAM */
 	.resource		= msm_camera_resources,
 	.num_resources		= ARRAY_SIZE(msm_camera_resources),
