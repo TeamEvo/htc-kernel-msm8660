@@ -1,6 +1,7 @@
-/* linux/arch/arm/mach-msm/board-mecha-panel.c
+/* linux/arch/arm/mach-msm/board-pyramid-panel.c
  *
  * Copyright (c) 2011 HTC.
+ * Copyright (c) 2012 The CyanogenMod Project.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -32,7 +33,7 @@
 #include <mach/debug_display.h>
 
 #include "../devices.h"
-#include "../board-pyramid.h"
+#include "../board-htc8x60.h"
 #include "../devices-msm8x60.h"
 #include "../../../../drivers/video/msm_8x60/mdp_hw.h"
 #if defined (CONFIG_FB_MSM_MDP_ABL)
@@ -47,9 +48,9 @@ static struct regulator *l4_1v8;
 
 /*
 TODO:
-1. move regulator initialization to pyramid_panel_init()
+1. move regulator initialization to htc8x60_panel_init()
 */
-static void pyramid_panel_power(int on)
+static void htc8x60_panel_power(int on)
 {
 	static int init;
 	int ret;
@@ -457,7 +458,7 @@ static int mipi_panel_power(int on)
 
 	mipi_power_save_on = flag_on;
 
-	pyramid_panel_power(on);
+	htc8x60_panel_power(on);
 
 	return 0;
 }
