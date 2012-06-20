@@ -20,8 +20,10 @@
 
 #ifdef CONFIG_MACH_SHOOTER
 #define HTC8X60_PROJECT_NAME	"shooter"
-#else
+#elif defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_PROJECT_NAME	"shooter_u"
+#elif defined(CONFIG_MACH_PYRAMID)
+#define HTC8X60_PROJECT_NAME	"pyramid"
 #endif
 
 /* deal with memory allocation */
