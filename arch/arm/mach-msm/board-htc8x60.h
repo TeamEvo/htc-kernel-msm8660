@@ -105,10 +105,15 @@
 /* Direct Keys */
 #define HTC8X60_GPIO_SW_LCM_3D       (64)
 #define HTC8X60_GPIO_SW_LCM_2D       (68)
+#ifdef CONFIG_MACH_PYRAMID
+#define HTC8X60_GPIO_KEY_VOL_DOWN	(189)
+#define HTC8X60_GPIO_KEY_VOL_UP		(188)
+#elif defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_GPIO_KEY_VOL_DOWN    (103)
 #define HTC8X60_GPIO_KEY_VOL_UP      (104)
 #define HTC8X60_GPIO_KEY_CAM_STEP2   (115)
 #define HTC8X60_GPIO_KEY_CAM_STEP1   (123)
+#endif
 #define HTC8X60_GPIO_KEY_POWER       (125)
 
 /* Battery */
@@ -149,7 +154,12 @@
 /* TP */
 #define HTC8X60_TP_I2C_SDA           (51)
 #define HTC8X60_TP_I2C_SCL           (52)
+#ifdef CONFIG_TOUCHSCREEN_ATMEL
 #define HTC8X60_TP_ATT_N             (57)
+#elif defined(CONFIG_TOUCHSCREEN_CYPRESS_TMA)
+#define HTC8X60_TP_ATT_N             (65)
+#define HTC8X60_TP_ATT_N_XB          (50)
+#endif
 
 /* LCD */
 #define GPIO_LCM_ID	50
@@ -192,11 +202,13 @@
 #define HTC8X60_SPI_CLK                (36)
 
 /* LCM */
+#if defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_CTL_3D_1		(131)
 #define HTC8X60_CTL_3D_2		(132)
 #define HTC8X60_CTL_3D_3		(133)
 #define HTC8X60_CTL_3D_4		(134)
 #define HTC8X60_LCM_3D_PDz		(135)
+#endif
 
 /* CAMERA SPI */
 #ifdef CONFIG_MACH_SHOOTER
@@ -204,7 +216,7 @@
 #define HTC8X60_SP3D_SPI_DI             (38)
 #define HTC8X60_SP3D_SPI_CS             (39)
 #define HTC8X60_SP3D_SPI_CLK            (40)
-#else
+#elif defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_SP3D_SPI_DO             (41)
 #define HTC8X60_SP3D_SPI_DI             (42)
 #define HTC8X60_SP3D_SPI_CS             (43)
@@ -215,6 +227,7 @@
 #define HTC8X60_CAM_I2C_SDA             (47)
 #define HTC8X60_CAM_I2C_SCL             (48)
 
+#if defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_SP3D_GATE              (107)
 #define HTC8X60_SP3D_CORE_GATE          (58)
 #define HTC8X60_SP3D_SYS_RST           (102)
@@ -229,38 +242,50 @@
 #define HTC8X60_WEBCAM_RST             (138)
 #define HTC8X60_CAM_SEL                (141)
 #define HTC8X60_SP3D_INT               (106)
+#endif
 
 /* PMIC */
 
 /* PMIC GPIO definition */
 #define PMGPIO(x) (x-1)
+#define HTC8X60_AUD_HP_EN          PMGPIO(18)
+#define HTC8X60_AUD_QTR_RESET      PMGPIO(21)
+#define HTC8X60_TP_RST             PMGPIO(23)
+#define HTC8X60_GREEN_LED          PMGPIO(24)
+#define HTC8X60_AMBER_LED          PMGPIO(25)
+#define HTC8X60_CHG_STAT           PMGPIO(33)
+#define HTC8X60_SDC3_DET           PMGPIO(34)
+#define HTC8X60_AUD_REMO_PRES      PMGPIO(37)
+#define HTC8X60_WIFI_BT_SLEEP_CLK  PMGPIO(38)
+
+#if defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_VOL_UP             (104)
 #define HTC8X60_VOL_DN             (103)
-#define HTC8X60_AUD_HP_EN          PMGPIO(18)
+#define HTC8X60_AUD_MIC_SEL        PMGPIO(14)
+#define HTC8X60_AUD_REMO_EN        PMGPIO(15)
+#define HTC8X60_WIMAX_DEBUG12      PMGPIO(16)
+#define HTC8X60_WIMAX_HOST_WAKEUP  PMGPIO(17)
 #define HTC8X60_AUD_SPK_ENO        PMGPIO(19)
 #define HTC8X60_3DLCM_PD           PMGPIO(20)
 #define HTC8X60_PS_VOUT            PMGPIO(22)
-#define HTC8X60_GREEN_LED          PMGPIO(24)
-#define HTC8X60_AMBER_LED          PMGPIO(25)
 #define HTC8X60_3DCLK              PMGPIO(26)
-#define HTC8X60_AUD_MIC_SEL        PMGPIO(14)
-#define HTC8X60_WIFI_BT_SLEEP_CLK  PMGPIO(38)
-#define HTC8X60_WIMAX_HOST_WAKEUP  PMGPIO(17)
-#define HTC8X60_WIMAX_DEBUG12      PMGPIO(16)
 #define HTC8X60_WIMAX_DEBUG14_XA   PMGPIO(28)
 #define HTC8X60_WIMAX_DEBUG15_XA   PMGPIO(30)
+#define HTC8X60_TORCH_SET2         PMGPIO(31)
 #define HTC8X60_WIMAX_DEBUG14      PMGPIO(35)
 #define HTC8X60_WIMAX_DEBUG15      PMGPIO(36)
-#define HTC8X60_TP_RST             PMGPIO(23)
 #ifdef CONFIG_MACH_SHOOTER
 #define HTC8X60_TORCH_SET1         PMGPIO(32)
-#else
+#elif defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_TORCH_SET1         PMGPIO(40)
 #endif
-#define HTC8X60_TORCH_SET2         PMGPIO(31)
-#define HTC8X60_CHG_STAT	   PMGPIO(33)
-#define HTC8X60_AUD_REMO_EN        PMGPIO(15)
-#define HTC8X60_AUD_REMO_PRES      PMGPIO(37)
+#elif defined (CONFIG_MACH_PYRAMID)
+#define HTC8X60_VOL_UP             PMGPIO(16)
+#define HTC8X60_VOL_DN             PMGPIO(17)
+#define HTC8X60_HAP_ENABLE         PMGPIO(19)
+#define HTC8X60_AUD_MIC_SEL        PMGPIO(26)
+#define HTC8X60_PS_VOUT            PMGPIO(35)
+#endif
 
 #define SW_CAM				0x0e
 

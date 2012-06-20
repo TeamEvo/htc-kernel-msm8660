@@ -31,8 +31,11 @@
 #include <mach/qdsp6v2_1x/q6asm.h>
 #include <mach/htc_acoustic_8x60.h>
 
+#include "board-htc8x60.h"
 #include "board-pyramid-audio-data.h"
 #include <mach/qdsp6v2_1x/audio_dev_ctl.h>
+
+#include <mach/board-msm8660.h>
 
 static struct mutex bt_sco_lock;
 static struct mutex mic_lock;
@@ -45,12 +48,7 @@ static atomic_t q6_effect_mode = ATOMIC_INIT(-1);
 #define BIT_RECEIVER	(1 << 2)
 #define BIT_FM_SPK	(1 << 3)
 #define BIT_FM_HS	(1 << 4)
-#define HTC8X60_AUD_CODEC_RST        (67)
-#define HTC8X60_AUD_HP_EN          PMGPIO(18)
-#define HTC8X60_AUD_MIC_SEL        PMGPIO(26)
-#define PM8058_GPIO_BASE			NR_MSM_GPIOS
-#define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_GPIO_BASE)
-#define PMGPIO(x) (x-1)
+
 void htc8x60_snddev_bmic_pamp_on(int en);
 static uint32_t msm_aic3254_reset_gpio[] = {
 	GPIO_CFG(HTC8X60_AUD_CODEC_RST, 0, GPIO_CFG_OUTPUT,
@@ -144,6 +142,7 @@ void htc8x60_snddev_bt_sco_pamp_on(int en)
 /* power on/off externnal mic bias */
 void htc8x60_mic_enable(int en, int shift)
 {
+#if defined(CONFIG_PMIC8058_OTHC) || defined(CONFIG_PMIC8058_OTHC_MODULE)
 	pr_aud_info("%s: %d, shift %d\n", __func__, en, shift);
 
 	mutex_lock(&mic_lock);
@@ -154,10 +153,12 @@ void htc8x60_mic_enable(int en, int shift)
 		pm8058_micbias_enable(OTHC_MICBIAS_2, OTHC_SIGNAL_OFF);
 
 	mutex_unlock(&mic_lock);
+#endif
 }
 
 void htc8x60_snddev_imic_pamp_on(int en)
 {
+#if defined(CONFIG_PMIC8058_OTHC) || defined(CONFIG_PMIC8058_OTHC_MODULE)
 	int ret;
 
 	pr_aud_info("%s %d\n", __func__, en);
@@ -172,10 +173,12 @@ void htc8x60_snddev_imic_pamp_on(int en)
 		if (ret)
 			pr_aud_err("%s: Enabling int mic power failed\n", __func__);
 	}
+#endif
 }
 
 void htc8x60_snddev_bmic_pamp_on(int en)
 {
+#if defined(CONFIG_PMIC8058_OTHC) || defined(CONFIG_PMIC8058_OTHC_MODULE)
 	int ret;
 
 	pr_aud_info("%s %d\n", __func__, en);
@@ -194,6 +197,7 @@ void htc8x60_snddev_bmic_pamp_on(int en)
 		if (ret)
 			pr_aud_err("%s: Enabling back mic power failed\n", __func__);
 	}
+#endif
 }
 
 void htc8x60_snddev_emic_pamp_on(int en)
@@ -210,6 +214,7 @@ void htc8x60_snddev_emic_pamp_on(int en)
 
 void htc8x60_snddev_stereo_mic_pamp_on(int en)
 {
+#if defined(CONFIG_PMIC8058_OTHC) || defined(CONFIG_PMIC8058_OTHC_MODULE)
 	int ret;
 
 	pr_aud_info("%s %d\n", __func__, en);
@@ -235,6 +240,7 @@ void htc8x60_snddev_stereo_mic_pamp_on(int en)
 		if (ret)
 			pr_aud_err("%s: Disabling back mic power failed\n", __func__);
 	}
+#endif
 }
 
 void htc8x60_snddev_fmspk_pamp_on(int en)
@@ -419,9 +425,11 @@ static struct acoustic_ops acoustic = {
 	.enable_mic_bias = htc8x60_mic_enable,
 	.support_aic3254 = htc8x60_support_aic3254,
 	.support_back_mic = htc8x60_support_back_mic,
+/*
 	.get_acoustic_tables = htc8x60_get_acoustic_tables,
 	.support_beats = htc8x60_support_beats,
 	.enable_beats = htc8x60_enable_beats,
+*/
 	.set_q6_effect = htc8x60_set_q6_effect_mode,
 };
 
@@ -429,7 +437,6 @@ void htc8x60_aic3254_set_mode(int config, int mode)
 {
 	aic3254_set_mode(config, mode);
 }
-
 
 static struct q6v2audio_aic3254_ops aops = {
        .aic3254_set_mode = htc8x60_aic3254_set_mode,
