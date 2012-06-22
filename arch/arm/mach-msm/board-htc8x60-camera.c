@@ -31,6 +31,35 @@ static struct resource msm_camera_resources[] = {
 
 static void config_gpio_table(uint32_t *table, int len);
 
+#ifdef CONFIG_MACH_PYRAMID
+static uint32_t camera_off_gpio_table[] = {
+	GPIO_CFG(137,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM1_RST# */
+	GPIO_CFG(138,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM2_RST# */
+	GPIO_CFG(140,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM2_PWDN */
+	GPIO_CFG(32, 			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_16MA),	/* CAM_MCLK */
+	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_4MA),	/* CAM_I2C_SDA */
+	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_8MA),	/* CAM_I2C_SCL */
+	GPIO_CFG(141,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM_SEL */
+	GPIO_CFG(HTC8X60_CAM_CAM1_ID,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM_CAM1_ID */
+};
+
+static uint32_t camera_on_gpio_table_workaround[] = {
+	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_4MA),	/* CAM_I2C_SDA */
+	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),	/* CAM_I2C_SCL */
+};
+
+static uint32_t camera_on_gpio_table[] = {
+	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_4MA),	/* CAM_I2C_SDA */
+	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_UP, GPIO_CFG_8MA),	/* CAM_I2C_SCL */
+	GPIO_CFG(32,			1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_16MA),	/* CAM_MCLK */
+	GPIO_CFG(137,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM1_RST# */
+	GPIO_CFG(138,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM2_RST# */
+	GPIO_CFG(140,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM2_PWDN */
+	GPIO_CFG(141,			0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM_SEL */
+	GPIO_CFG(HTC8X60_CAM_CAM1_ID,	0, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),	/* CAM_CAM1_ID */
+};
+
+#else
 static uint32_t camera_off_gpio_table[] = {
 	GPIO_CFG(HTC8X60_CAM_I2C_SDA,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
 	GPIO_CFG(HTC8X60_CAM_I2C_SCL,	 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,   GPIO_CFG_8MA),/*i2c*/
@@ -66,6 +95,7 @@ static uint32_t camera_on_gpio_table[] = {
 	GPIO_CFG(HTC8X60_WEBCAM_STB,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 	GPIO_CFG(HTC8X60_CAM_SEL,	 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 };
+#endif
 
 static int htc8x60_config_camera_on_gpios(void)
 {
@@ -102,6 +132,7 @@ static int camera_sensor_power_enable(char *power, unsigned volt)
 	return rc;
 }
 
+#ifndef CONFIG_MACH_PYRAMID
 static int camera_sensor_power_enable_8901(char *power)
 {
 	struct regulator *sensor_power;
@@ -126,6 +157,7 @@ static int camera_sensor_power_enable_8901(char *power)
 	regulator_put(sensor_power);
 	return rc;
 }
+#endif
 
 static int camera_sensor_power_disable(char *power)
 {
@@ -349,8 +381,10 @@ static struct flashlight_platform_data flashlight_data = {
 	.gpio_init		= config_flashlight_gpios,
 	.torch			= HTC8X60_TORCH_EN,
 	.flash			= HTC8X60_FLASH_EN,
+#ifndef CONFIG_MACH_PYRAMID
 	.torch_set1		= PM8058_GPIO_PM_TO_SYS(HTC8X60_TORCH_SET1),
 	.torch_set2		= PM8058_GPIO_PM_TO_SYS(HTC8X60_TORCH_SET2),
+#endif
 	.flash_duration_ms	= 600,
 	.chip_model		= AAT1277,
 };
@@ -602,6 +636,236 @@ static struct i2c_board_info msm_s5k6aafx_camera_boardinfo[] __initdata = {
 	},
 	{
 		I2C_BOARD_INFO("s5k6aafx", 0x5a >> 1), /* COB type */
+	},
+};
+#endif
+
+#if defined(CONFIG_S5K3H1GX) || defined(CONFIG_MT9V113)
+static int htc8x60_sensor_vreg_off(void)
+{
+	int rc;
+	pr_info("[CAM] %s\n", __func__);
+	/* main / 2nd camera digital power */
+	rc = camera_sensor_power_disable("8058_l9");
+	/*pr_info("[CAM] sensor_power_disable(\"8058_l9\") == %d\n", rc);*/
+
+	/* main / 2nd camera analog power */
+	rc = camera_sensor_power_disable("8058_l15");
+	/*pr_info("[CAM] sensor_power_disable(\"8058_l15\") == %d\n", rc);*/
+
+	/* IO power off */
+	rc = camera_sensor_power_disable("8058_l12");
+	/*pr_info("[CAM] sensor_power_disable(\"8058_l12\") == %d\n", rc);*/
+
+	/* main camera VCM power */
+	rc = camera_sensor_power_disable("8058_l10");
+	/*pr_info("[CAM] sensor_power_disable(\"8058_l10\") == %d\n", rc);*/
+
+	mdelay(20);
+
+	return rc;
+}
+
+static int htc8x60_sensor_vreg_on(void)
+{
+	static int first_run = 1;
+	int rc;
+	pr_info("[CAM] %s\n", __func__);
+	/* Work-around for PYD power issue */
+	if (first_run == 1) {
+		first_run = 0;
+
+		config_gpio_table(camera_on_gpio_table_workaround,
+			ARRAY_SIZE(camera_on_gpio_table_workaround));
+
+		mdelay(10);
+
+		/* main camera VCM power */
+		rc = camera_sensor_power_enable("8058_l10", 2850000);
+		/*pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2850) == %d\n", rc);*/
+		/*IO*/
+		rc = camera_sensor_power_enable("8058_l12", 1800000);
+		/*pr_info("[CAM] sensor_power_enable(\"8058_l12\", 1800) == %d\n", rc);*/
+		udelay(50);
+		/* main / 2nd camera analog power */
+		rc = camera_sensor_power_enable("8058_l15", 2800000);
+		/*pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2850) == %d\n", rc);*/
+		udelay(50);
+		/* main / 2nd camera digital power */
+		rc = camera_sensor_power_enable("8058_l9", 1800000);
+		/*pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);*/
+
+		mdelay(20);
+		pr_info("[CAM] call htc8x60_sensor_vreg_off() at first boot up !!!\n");
+		htc8x60_sensor_vreg_off();
+	}
+
+	/* main camera VCM power */
+	rc = camera_sensor_power_enable("8058_l10", 2850000);
+	/*pr_info("[CAM] sensor_power_enable(\"8058_l10\", 2850) == %d\n", rc);*/
+	/*IO*/
+	rc = camera_sensor_power_enable("8058_l12", 1800000);
+	/*pr_info("[CAM] sensor_power_enable(\"8058_l12\", 1800) == %d\n", rc);*/
+	udelay(50);
+	/* main / 2nd camera analog power */
+	rc = camera_sensor_power_enable("8058_l15", 2800000);
+	/*pr_info("[CAM] sensor_power_enable(\"8058_l15\", 2850) == %d\n", rc);*/
+	udelay(50);
+	/* main / 2nd camera digital power */
+	rc = camera_sensor_power_enable("8058_l9", 1800000);
+	/*pr_info("[CAM] sensor_power_enable(\"8058_l9\", 1800) == %d\n", rc);*/
+
+	mdelay(1);
+
+	return rc;
+}
+
+#define CLK_SWITCH 141
+static void htc8x60_maincam_clk_switch(void)
+{
+	int rc = 0;
+	pr_info("[CAM] Doing clk switch (Main Cam)\n");
+	rc = gpio_request(CLK_SWITCH, "s5k3h1gx");
+	if (rc < 0)
+		pr_err("[CAM] GPIO (%d) request fail\n", CLK_SWITCH);
+	else
+		gpio_direction_output(CLK_SWITCH, 0);
+	gpio_free(CLK_SWITCH);
+	return;
+}
+
+static void htc8x60_seccam_clk_switch(void)
+{
+	int rc = 0;
+	pr_info("[CAM] Doing clk switch (2nd Cam)\n");
+	rc = gpio_request(CLK_SWITCH, "mt9v113");
+
+	if (rc < 0)
+		pr_err("[CAM] GPIO (%d) request fail\n", CLK_SWITCH);
+	else
+		gpio_direction_output(CLK_SWITCH, 1);
+
+	gpio_free(CLK_SWITCH);
+	return;
+}
+
+static void htc8x60_config_camera_off_gpios(void)
+{
+	config_gpio_table(camera_off_gpio_table,
+		ARRAY_SIZE(camera_off_gpio_table));
+}
+
+static int flashlight_control(int mode)
+{
+	return aat1277_flashlight_control(mode);
+}
+
+static struct msm_camera_sensor_flash_src msm_flash_src = {
+	.flash_sr_type				= MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
+	.camera_flash				= flashlight_control,
+};
+
+static struct camera_flash_cfg msm_camera_sensor_flash_cfg = {
+	.low_temp_limit		= 5,
+	.low_cap_limit		= 5,
+};
+#endif
+
+#ifdef CONFIG_S5K3H1GX
+static struct msm_camera_sensor_flash_data flash_s5k3h1gx = {
+	.flash_type		= MSM_CAMERA_FLASH_LED,
+	.flash_src		= &msm_flash_src
+};
+
+static struct msm_camera_device_platform_data msm_camera_device_data_s53kh1gx = {
+	.camera_gpio_on		= htc8x60_config_camera_on_gpios,
+	.camera_gpio_off	= htc8x60_config_camera_off_gpios,
+	.ioext.csiphy		= 0x04800000,
+	.ioext.csisz		= 0x00000400,
+	.ioext.csiirq		= CSI_0_IRQ,
+	.ioclk.mclk_clk_rate	= 24000000,
+	.ioclk.vfe_clk_rate	= 228570000,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_s5k3h1gx_data = {
+	.sensor_name		= "s5k3h1gx",
+	.sensor_reset		= 137,/*Main Cam RST*/
+	.sensor_pwd		= 137,/*139,*/ /*Main Cam PWD*/
+	.vcm_pwd		= 58,/*VCM_PD*/
+	.vcm_enable		= 0,
+	.camera_power_on	= htc8x60_sensor_vreg_on,
+	.camera_power_off	= htc8x60_sensor_vreg_off,
+	.camera_clk_switch	= htc8x60_maincam_clk_switch,
+	.pdata			= &msm_camera_device_data_s53kh1gx,
+	.resource		= msm_camera_resources,
+	.num_resources		= ARRAY_SIZE(msm_camera_resources),
+	.flash_data		= &flash_s5k3h1gx,
+	.flash_cfg		= &msm_camera_sensor_flash_cfg,
+	.power_down_disable	= false, /* true: disable pwd down function */
+	.mirror_mode		= 1,
+	.cam_select_pin		= CLK_SWITCH,
+	.csi_if			= 1,
+	.dev_node		= 0
+};
+
+static struct platform_device msm_camera_sensor_s5k3h1gx = {
+	.name	= "msm_camera_s5k3h1gx",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_s5k3h1gx_data,
+	},
+};
+
+static struct i2c_board_info msm_s5k3h1gx_camera_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("s5k3h1gx", 0x20 >> 1),
+	},
+};
+#endif
+
+#ifdef CONFIG_MT9V113
+static struct msm_camera_sensor_flash_data flash_mt9v113 = {
+	.flash_type		= MSM_CAMERA_FLASH_NONE,
+};
+
+static struct msm_camera_device_platform_data msm_camera_device_data_mt9v113 = {
+	.camera_gpio_on		= htc8x60_config_camera_on_gpios,
+	.camera_gpio_off	= htc8x60_config_camera_off_gpios,
+	.ioext.csiphy		= 0x04900000,
+	.ioext.csisz		= 0x00000400,
+	.ioext.csiirq		= CSI_1_IRQ,
+	.ioclk.mclk_clk_rate	= 24000000,
+	.ioclk.vfe_clk_rate	= 228570000,
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_mt9v113_data = {
+	.sensor_name		= "mt9v113",
+	.sensor_reset		= 138,/*2nd Cam RST*/
+	.sensor_pwd		= 140,/*2nd Cam PWD*/
+	.camera_clk_switch	= htc8x60_seccam_clk_switch,
+	.camera_power_on	= htc8x60_sensor_vreg_on,
+	.camera_power_off	= htc8x60_sensor_vreg_off,
+	.pdata			= &msm_camera_device_data_mt9v113,
+	.resource		= msm_camera_resources,
+	.num_resources		= ARRAY_SIZE(msm_camera_resources),
+	.flash_data             = &flash_mt9v113,
+	.power_down_disable	= false, /* true: disable pwd down function */
+	.mirror_mode		= 1,
+	.cam_select_pin		= CLK_SWITCH,
+	.csi_if			= 1,
+	.dev_node		= 1
+};
+
+struct platform_device msm_camera_sensor_mt9v113;
+
+static void __init mt9v113_init_camera(void)
+{
+	msm_camera_sensor_mt9v113.name = "msm_camera_mt9v113";
+	msm_camera_sensor_mt9v113.dev.platform_data = &msm_camera_sensor_mt9v113_data;
+}
+
+static struct i2c_board_info msm_mt9v113_camera_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("mt9v113", 0x3C),
 	},
 };
 #endif

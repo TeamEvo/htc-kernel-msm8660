@@ -226,6 +226,7 @@
 /* CAMERA GPIO */
 #define HTC8X60_CAM_I2C_SDA             (47)
 #define HTC8X60_CAM_I2C_SCL             (48)
+#define HTC8X60_CAM_CAM1_ID		(10)
 
 #if defined(CONFIG_MACH_SHOOTER) || defined(CONFIG_MACH_SHOOTER_U)
 #define HTC8X60_SP3D_GATE              (107)
