@@ -68,6 +68,7 @@
 #include <mach/msm_iomap.h>
 #include <mach/msm_memtypes.h>
 #include <mach/msm_serial_hs.h>
+#include <mach/bcm_bt_lpm.h>
 #include <mach/msm_spi.h>
 #include <mach/msm_xo.h>
 #include <mach/restart.h>
@@ -130,7 +131,7 @@ unsigned engineerid, mem_size_mb;
 static struct resource ram_console_resources[] = {
 	{
 		.start  = MSM_RAM_CONSOLE_BASE,
-		.end    = MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
+		.end	= MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 };
@@ -173,19 +174,19 @@ static struct platform_device msm_vpe_device = {
 static struct resource msm_gemini_resources[] = {
 	{
 		.start  = 0x04600000,
-		.end    = 0x04600000 + SZ_1M - 1,
+		.end	= 0x04600000 + SZ_1M - 1,
 		.flags  = IORESOURCE_MEM,
 	},
 	{
 		.start  = INT_JPEG,
-		.end    = INT_JPEG,
+		.end	= INT_JPEG,
 		.flags  = IORESOURCE_IRQ,
 	},
 };
 
 static struct platform_device msm_gemini_device = {
-	.name           = "msm_gemini",
-	.resource       = msm_gemini_resources,
+	.name		= "msm_gemini",
+	.resource	= msm_gemini_resources,
 	.num_resources  = ARRAY_SIZE(msm_gemini_resources),
 };
 #endif
@@ -205,14 +206,14 @@ static struct msm_rpm_log_platform_data msm_rpm_log_pdata = {
 		[MSM_RPM_LOG_PAGE_BUFFER]  = 0x00000CA0,
 	},
 	.phys_size = SZ_8K,
-	.log_len = 4096,                  /* log's buffer length in bytes */
-	.log_len_mask = (4096 >> 2) - 1,  /* length mask in units of u32 */
+	.log_len = 4096,			/* log's buffer length in bytes */
+	.log_len_mask = (4096 >> 2) - 1,	/* length mask in units of u32 */
 };
 
 static struct platform_device msm_rpm_log_device = {
 	.name   = "msm_rpm_log",
-	.id     = -1,
-	.dev    = {
+	.id	= -1,
+	.dev	= {
 		.platform_data = &msm_rpm_log_pdata,
 	},
 };
@@ -234,9 +235,9 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 };
 
 static struct platform_device htc_battery_pdev = {
-	.name = "htc_battery",
-	.id = -1,
-	.dev    = {
+	.name	= "htc_battery",
+	.id	= -1,
+	.dev	= {
 		.platform_data = &htc_battery_pdev_data,
 	},
 };
@@ -754,8 +755,8 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 #endif
 	.ldo_init		= msm_hsusb_ldo_init,
 	.ldo_enable		= msm_hsusb_ldo_enable,
-	.config_vddcx           = msm_hsusb_config_vddcx,
-	.init_vddcx             = msm_hsusb_init_vddcx,
+	.config_vddcx		= msm_hsusb_config_vddcx,
+	.init_vddcx		= msm_hsusb_init_vddcx,
 #ifdef CONFIG_BATTERY_MSM8X60
 	.chg_vbus_draw		= msm_charger_vbus_draw,
 #endif
@@ -1015,7 +1016,7 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 };
 
 #ifdef CONFIG_PMIC8901
-#define PM8901_GPIO_INT           91
+#define PM8901_GPIO_INT		91
 /*
  * Consumer specific regulator names:
  *			 regulator name		consumer dev_name
@@ -1121,17 +1122,17 @@ static struct regulator_init_data saw_s1_init_data = {
 };
 
 static struct platform_device msm_device_saw_s0 = {
-	.name          = "saw-regulator",
-	.id            = 0,
-	.dev           = {
+	.name	= "saw-regulator",
+	.id	= 0,
+	.dev	= {
 		.platform_data = &saw_s0_init_data,
 	},
 };
 
 static struct platform_device msm_device_saw_s1 = {
-	.name          = "saw-regulator",
-	.id            = 1,
-	.dev           = {
+	.name	= "saw-regulator",
+	.id	= 1,
+	.dev	= {
 		.platform_data = &saw_s1_init_data,
 	},
 };
@@ -1310,9 +1311,9 @@ static struct regulator_consumer_supply vreg_consumers_PM8901_S4_PC[] = {
 };
 
 #define RPM_VREG_INIT(_id, _min_uV, _max_uV, _modes, _ops, _apply_uV, \
-		      _default_uV, _peak_uA, _avg_uA, _pull_down, _pin_ctrl, \
-		      _freq, _pin_fn, _force_mode, _state, _sleep_selectable, \
-		      _always_on) \
+			_default_uV, _peak_uA, _avg_uA, _pull_down, _pin_ctrl, \
+			_freq, _pin_fn, _force_mode, _state, _sleep_selectable, \
+			_always_on) \
 	{ \
 		.init_data = { \
 			.constraints = { \
@@ -1551,9 +1552,25 @@ static int configure_uart_gpios(int on)
 }
 
 static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
-       .inject_rx_on_wakeup = 1,
-       .rx_to_inject = 0xFD,
-       .gpio_config = configure_uart_gpios,
+	.wakeup_irq = -1,
+	.inject_rx_on_wakeup = 0,
+	.gpio_config = configure_uart_gpios,
+	.exit_lpm_cb = bcm_bt_lpm_exit_lpm_locked,
+};
+
+static struct bcm_bt_lpm_platform_data bcm_bt_lpm_pdata = {
+	.gpio_wake = SHOOTER_GPIO_BT_CHIP_WAKE,
+	.gpio_host_wake = SHOOTER_GPIO_BT_HOST_WAKE,
+	.request_clock_off_locked = msm_hs_request_clock_off_locked,
+	.request_clock_on_locked = msm_hs_request_clock_on_locked,
+};
+
+struct platform_device shooter_bcm_bt_lpm_device = {
+	.name = "bcm_bt_lpm",
+	.id = 0,
+	.dev = {
+		.platform_data = &bcm_bt_lpm_pdata,
+	},
 };
 #endif
 
@@ -1896,12 +1913,12 @@ static int pmic8058_xoadc_vreg_setup(void)
 		goto fail;
 	}
 
-        rc = regulator_enable(vreg_ldo18_adc);
-        if (rc) {
-                pr_err("%s: Enable of regulator ldo18_adc "
-                                        "failed\n", __func__);
-                goto fail;
-        }
+	rc = regulator_enable(vreg_ldo18_adc);
+	if (rc) {
+		pr_err("%s: Enable of regulator ldo18_adc "
+					"failed\n", __func__);
+		goto fail;
+	}
 
 	return rc;
 fail:
@@ -1991,7 +2008,7 @@ static int pm8058_pwm_config(struct pwm_device *pwm, int ch, int on)
 		rc = pm8058_pwm_config_led(pwm, id, mode, max_mA);
 		if (rc)
 			pr_err("%s: pm8058_pwm_config_led(ch=%d): rc=%d\n",
-			       __func__, ch, rc);
+				__func__, ch, rc);
 	}
 	return rc;
 
@@ -2001,7 +2018,7 @@ static struct pm8058_pwm_pdata pm8058_pwm_data = {
 	.config		= pm8058_pwm_config,
 };
 
-#define PM8058_GPIO_INT           88
+#define PM8058_GPIO_INT		88
 static struct pmic8058_led pmic8058_flash_leds[] = {
 	[0] = {
 		.name		= "camera:flash0",
@@ -2452,7 +2469,7 @@ static void __init msm8x60_init_pm8058_othc(void)
 #endif
 
 static struct pm8xxx_rtc_platform_data pm8058_rtc_pdata = {
-	.rtc_write_enable       = true,
+	.rtc_write_enable	= true,
 	.rtc_alarm_powerup	= false,
 };
 
@@ -2775,8 +2792,8 @@ static struct tpa2051d3_platform_data tpa2051d3_pdata = {
 
 static struct i2c_board_info msm_i2c_gsbi7_tpa2051d3_info[] = {
 	{
-                I2C_BOARD_INFO(TPA2051D3_I2C_NAME, TPA2051D3_I2C_SLAVE_ADDR),
-                .platform_data = &tpa2051d3_pdata,
+		I2C_BOARD_INFO(TPA2051D3_I2C_NAME, TPA2051D3_I2C_SLAVE_ADDR),
+		.platform_data = &tpa2051d3_pdata,
 	},
 };
 
@@ -2803,9 +2820,9 @@ static struct spi_board_info msm_spi_board_info[] __initdata = {
 
 #ifdef CONFIG_I2C
 struct i2c_registry {
-	int                    bus;
+	int bus;
 	struct i2c_board_info *info;
-	int                    len;
+	int len;
 };
 
 static struct tps65200_platform_data tps65200_data = {
@@ -2900,6 +2917,9 @@ static struct platform_device *devices[] __initdata = {
 	&msm_gsbi5_qup_i2c_device,
 	&msm_gsbi7_qup_i2c_device,
 	&msm_gsbi10_qup_i2c_device,
+#endif
+#ifdef CONFIG_SERIAL_MSM_HS
+	&shooter_bcm_bt_lpm_device,
 #endif
 #ifdef CONFIG_BT
 	&shooter_rfkill,
@@ -4003,7 +4023,7 @@ static unsigned int msm8x60_sdcc_slot_status(struct device *dev)
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
 static unsigned int shooter_emmcslot_type = MMC_TYPE_MMC;
 static struct mmc_platform_data msm8x60_sdc1_data = {
-	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
+	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 #ifndef CONFIG_HTC_MMC
 	.translate_vdd  = msm_sdcc_setup_power,
 #endif
@@ -4024,16 +4044,16 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 static unsigned int shooter_sdslot_type = MMC_TYPE_SD;
 static struct mmc_platform_data msm8x60_sdc3_data = {
-	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
+	.ocr_mask	= MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd  = msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
 #ifdef CONFIG_MMC_MSM_SDC3_WP_SUPPORT
 	.wpswitch  	= msm_sdc3_get_wpswitch,
 #endif
 #ifdef CONFIG_MMC_MSM_CARD_HW_DETECTION
-	.status      = msm8x60_sdcc_slot_status,
-	.status_irq  = PM8058_GPIO_IRQ(PM8058_IRQ_BASE,
-				       PMIC_GPIO_SDC3_DET - 1),
+	.status		= msm8x60_sdcc_slot_status,
+	.status_irq	= PM8058_GPIO_IRQ(PM8058_IRQ_BASE,
+				PMIC_GPIO_SDC3_DET - 1),
 	.irq_flags   = IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 #endif
 	.msmsdcc_fmin	= 144000,
@@ -4226,7 +4246,6 @@ static void __init msm8x60_init_buses(void)
 	bt_export_bd_address();
 #endif
 #ifdef CONFIG_SERIAL_MSM_HS
-	msm_uart_dm1_pdata.wakeup_irq = gpio_to_irq(SHOOTER_GPIO_BT_HOST_WAKE);
 	msm_device_uart_dm1.dev.platform_data = &msm_uart_dm1_pdata;
 #endif
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -4301,7 +4320,7 @@ static void __init msm8x60_init(void)
 #endif
 
 	printk(KERN_INFO "[HS_BOARD] (%s) system_rev = %d, engineerid = %d\n",
-	       __func__, system_rev, engineerid);
+		__func__, system_rev, engineerid);
 	if ((system_rev == 2 && engineerid >= 1) || system_rev > 2) {
 		htc_headset_pmic_data.key_gpio =
 			PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_REMO_PRES);
@@ -4323,7 +4342,7 @@ static void __init msm8x60_init(void)
 	pm8058_platform_data.vibrator_pdata = &pm8058_vib_pdata;
 
 	platform_add_devices(msm_footswitch_devices,
-					     msm_num_footswitch_devices);
+					msm_num_footswitch_devices);
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
 
@@ -4354,7 +4373,7 @@ static void __init msm8x60_init(void)
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if (properties_kobj)
 		rc = sysfs_create_group(properties_kobj,
-                                &shooter_properties_attr_group);
+				&shooter_properties_attr_group);
 	if (!properties_kobj || rc)
 		pr_err("failed to create board_properties\n");
 
