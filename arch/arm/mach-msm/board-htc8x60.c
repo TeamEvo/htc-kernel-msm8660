@@ -104,7 +104,7 @@ static struct platform_device ion_dev;
 unsigned engineerid, mem_size_mb;
 
 #ifdef CONFIG_MSM_CAMERA
-#include "board-shooter-camera.c"
+#include "board-htc8x60-camera.c"
 #endif
 
 struct pm8xxx_mpp_init_info {

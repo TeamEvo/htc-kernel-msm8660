@@ -1,4 +1,4 @@
-/* arch/arm/mach-msm/board-shooter-camera.c
+/* arch/arm/mach-msm/board-htc8x60-camera.c
  *
  * Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
  * Copyright (C) 2012 The CyanogenMod Project.
