@@ -281,3 +281,18 @@ config S5K6AAFX
 	default n
 	---help---
 	  Samsung 1.3M without Autofocus
+	  
+config S5K3H1GX
+  bool "Sensor s5k3h1gx"
+  depends on MSM_CAMERA
+  default n
+  ---help---
+    Samsung 8M 3H1 MIPI AF Sensor
+
+config MT9V113
+	bool "Sensor mt9v113 (VGA YUV)"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Support for MT9V113 Micron sensor driver.
+	  It is a Bayer 0.3MP sensor it supports two mipi lanes.
