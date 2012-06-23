@@ -2889,7 +2889,7 @@ static struct mpu3050_platform_data mpu3050_data_XB = {
 
 	.accel = {
 		.get_slave_descr = get_accel_slave_descr,
-		.adapt_num = 5, /* The i2c bus to which the mpu device is connected */
+		.adapt_num = MSM_GSBI10_QUP_I2C_BUS_ID, /* The i2c bus to which the mpu device is connected */
 		.bus = EXT_SLAVE_BUS_SECONDARY,
 		.address = 0x70 >> 1,
 		.orientation = { -1, 0, 0, 0, -1, 0, 0, 0, 1 },
@@ -2898,7 +2898,7 @@ static struct mpu3050_platform_data mpu3050_data_XB = {
 
 	.compass = {
 		.get_slave_descr = get_compass_slave_descr,
-		.adapt_num = 5, /* The i2c bus to which the mpu device is connected */
+		.adapt_num = MSM_GSBI10_QUP_I2C_BUS_ID, /* The i2c bus to which the mpu device is connected */
 		.bus = EXT_SLAVE_BUS_PRIMARY,
 		.address = 0x1A >> 1,
 		.orientation = { -1, 0, 0, 0, 1, 0, 0, 0, -1 },
