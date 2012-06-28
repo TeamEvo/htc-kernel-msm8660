@@ -349,3 +349,6 @@ obj-$(CONFIG_MSM_CACHE_ERP) += cache_erp.o
 obj-$(CONFIG_MSM_CACHE_DUMP) += msm_cache_dump.o
 
 obj-$(CONFIG_MSM_CAMERA_FLASH) += msm_flashlight.o
+
+obj-$(CONFIG_WIMAX) += board-common-wimax.o
+
