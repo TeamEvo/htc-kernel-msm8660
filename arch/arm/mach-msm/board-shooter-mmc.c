@@ -36,7 +36,7 @@
 #include "proc_comm.h"
 #include <mach/msm_iomap.h>
 #include <linux/mfd/pmic8058.h>
-#include "mpm.h"
+#include "mach/mpm.h"
 #include <linux/irq.h>
 
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);

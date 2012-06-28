@@ -139,7 +139,10 @@ struct mmc_platform_data {
 	unsigned int status_gpio;
 	/* Indicates the polarity of the GPIO line when card is inserted */
 	bool is_status_gpio_active_low;
+#ifdef CONFIG_HTC_MMC
         unsigned int sdiowakeup_irq;
+#endif
+	int (*cfg_mpm_sdiowakeup)(struct device *, unsigned);
         unsigned long irq_flags;
         unsigned long mmc_bus_width;
         int (*wpswitch) (struct device *);
@@ -162,10 +165,11 @@ struct mmc_platform_data {
 	u32 swfi_latency;
 	struct msm_mmc_bus_voting_data *msm_bus_voting_data;
 
-	/* HTC extension */
+#ifdef CONFIG_HTC_MMC
 	unsigned int *slot_type;
 	bool sdcc_v4_sup;
 	int emmc_dma_ch;
+#endif
 };
 
 #endif
