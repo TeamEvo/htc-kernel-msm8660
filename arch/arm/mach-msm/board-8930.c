@@ -87,7 +87,7 @@
 #include "pm.h"
 #include <mach/cpuidle.h>
 #include "rpm_resources.h"
-#include "mpm.h"
+#include <mach/mpm.h>
 #include "acpuclock.h"
 #include "rpm_log.h"
 #include "smd_private.h"
@@ -1500,11 +1500,28 @@ static void mxt_init_vkeys_8930(void)
 	return;
 }
 
+static struct mxt_config_info mxt_config_array[] = {
+	{
+		.config			= mxt_config_data_8930,
+		.config_length		= ARRAY_SIZE(mxt_config_data_8930),
+		.family_id		= 0x81,
+		.variant_id		= 0x01,
+		.version		= 0x10,
+		.build			= 0xAA,
+	},
+};
+
 static struct mxt_platform_data mxt_platform_data_8930 = {
-	.config			= mxt_config_data_8930,
-	.config_length		= ARRAY_SIZE(mxt_config_data_8930),
-	.x_size			= 1067,
-	.y_size			= 566,
+	.config_array		= mxt_config_array,
+	.config_array_size	= ARRAY_SIZE(mxt_config_array),
+	.panel_minx		= 0,
+	.panel_maxx		= 566,
+	.panel_miny		= 0,
+	.panel_maxy		= 1067,
+	.disp_minx		= 0,
+	.disp_maxx		= 540,
+	.disp_miny		= 0,
+	.disp_maxy		= 960,
 	.irqflags		= IRQF_TRIGGER_FALLING,
 #ifdef MSM8930_PHASE_2
 	.digital_pwr_regulator	= true,

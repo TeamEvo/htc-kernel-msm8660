@@ -1465,6 +1465,7 @@ static int tavarua_set_region(struct tavarua_device *radio,
 	xfr_buf[1] = GET_ABS_VAL(band_low);
 	xfr_buf[2] = RSH_DATA(band_high, 8);
 	xfr_buf[3] = GET_ABS_VAL(band_high);
+	xfr_buf[4] = 0; /* Active LOW */
 	retval = sync_write_xfr(radio, RADIO_CONFIG, xfr_buf);
 	if (retval < 0) {
 		FMDERR("Could not set regional settings\n");
@@ -2156,6 +2157,7 @@ exit:
 	marimba_set_fm_status(radio->marimba, false);
 	wait_for_completion(&radio->shutdown_done);
 	radio->handle_irq = 1;
+	radio->lp_mode = 1;
 	atomic_inc(&radio->users);
 	radio->marimba->mod_id = SLAVE_ID_BAHAMA;
 	flush_workqueue(radio->wqueue);
@@ -3037,8 +3039,8 @@ static int tavarua_vidioc_s_ctrl(struct file *file, void *priv,
 		} else if (ctrl->value == FM_ANALOG_PATH) {
 			FMDBG("Analog audio path enabled ...\n");
 			retval = tavarua_set_audio_path(
-				TAVARUA_AUDIO_OUT_ANALOG_ON,
-				TAVARUA_AUDIO_OUT_DIGITAL_OFF);
+				TAVARUA_AUDIO_OUT_DIGITAL_OFF,
+				TAVARUA_AUDIO_OUT_ANALOG_ON);
 			if (retval < 0) {
 				FMDERR("Error in tavarua_set_audio_path"
 					" %d\n", retval);
@@ -3559,14 +3561,21 @@ static int tavarua_vidioc_dqbuf(struct file *file, void *priv,
 {
 
 	struct tavarua_device  *radio = video_get_drvdata(video_devdata(file));
-	enum tavarua_buf_t buf_type = buffer->index;
-	struct kfifo *data_fifo;
-	unsigned char *buf = (unsigned char *)buffer->m.userptr;
-	unsigned int len = buffer->length;
+	enum tavarua_buf_t buf_type = -1;
+	unsigned char buf_fifo[STD_BUF_SIZE] = {0};
+	struct kfifo *data_fifo = NULL;
+	unsigned char *buf = NULL;
+	unsigned int len = 0, retval = -1;
+
+	if ((radio == NULL) || (buffer == NULL)) {
+		FMDERR("radio/buffer is NULL\n");
+		return -ENXIO;
+	}
+	buf_type = buffer->index;
+	buf = (unsigned char *)buffer->m.userptr;
+	len = buffer->length;
 	FMDBG("%s: requesting buffer %d\n", __func__, buf_type);
-	/* check if we can access the user buffer */
-	if (!access_ok(VERIFY_WRITE, buf, len))
-		return -EFAULT;
+
 	if ((buf_type < TAVARUA_BUF_MAX) && (buf_type >= 0)) {
 		data_fifo = &radio->data_buf[buf_type];
 		if (buf_type == TAVARUA_BUF_EVENTS) {
@@ -3579,10 +3588,20 @@ static int tavarua_vidioc_dqbuf(struct file *file, void *priv,
 		FMDERR("invalid buffer type\n");
 		return -EINVAL;
 	}
-	buffer->bytesused = kfifo_out_locked(data_fifo, buf, len,
-					&radio->buf_lock[buf_type]);
+	if (len <= STD_BUF_SIZE) {
+		buffer->bytesused = kfifo_out_locked(data_fifo, &buf_fifo[0],
+					len, &radio->buf_lock[buf_type]);
+	} else {
+		FMDERR("kfifo_out_locked can not use len more than 128\n");
+		return -EINVAL;
+	}
+	retval = copy_to_user(buf, &buf_fifo[0], buffer->bytesused);
+	if (retval > 0) {
+		FMDERR("Failed to copy %d bytes of data\n", retval);
+		return -EAGAIN;
+	}
 
-	return 0;
+	return retval;
 }
 
 /*=============================================================================
@@ -3896,10 +3915,27 @@ int tavarua_set_audio_path(int digital_on, int analog_on)
 {
 	struct tavarua_device *radio = private_data;
 	int rx_on = radio->registers[RDCTRL] & FM_RECV;
+	int retval = 0;
 	if (!radio)
 		return -ENOMEM;
 	/* RX */
 	FMDBG("%s: digital: %d analog: %d\n", __func__, digital_on, analog_on);
+	if ((radio->pdata != NULL) && (radio->pdata->config_i2s_gpio != NULL)) {
+		if (digital_on) {
+			retval = radio->pdata->config_i2s_gpio(FM_I2S_ON);
+			if (retval) {
+				pr_err("%s: config_i2s_gpio failed\n",
+								__func__);
+			}
+		} else {
+			retval = radio->pdata->config_i2s_gpio(FM_I2S_OFF);
+			if (retval) {
+				pr_err("%s: config_i2s_gpio failed\n",
+								__func__);
+			}
+		}
+	}
+
 	SET_REG_FIELD(radio->registers[AUDIOCTRL],
 		((rx_on && analog_on) ? 1 : 0),
 		AUDIORX_ANALOG_OFFSET,

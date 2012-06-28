@@ -21,6 +21,9 @@
 #include <mach/gpiomux.h>
 #include "devices.h"
 
+#include "board-9615.h"
+#include "board-storage-common-a.h"
+
 #if (defined(CONFIG_MMC_MSM_SDC1_SUPPORT) \
 		|| defined(CONFIG_MMC_MSM_SDC2_SUPPORT))
 
@@ -161,6 +164,8 @@ static struct msm_mmc_pin_data mmc_slot_pin_data[MAX_SDCC_CONTROLLER] = {
 #endif
 };
 
+#define MSM_MPM_PIN_SDC1_DAT1	17
+
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
 static unsigned int sdc1_sup_clk_rates[] = {
 	400000, 24000000, 48000000
@@ -181,7 +186,9 @@ static struct mmc_platform_data sdc1_data = {
 #endif
 	.xpc_cap	= 1,
 	.uhs_caps	= (MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
-			   MMC_CAP_MAX_CURRENT_400)
+			   MMC_CAP_MAX_CURRENT_400),
+	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC1_DAT1,
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 };
 static struct mmc_platform_data *msm9615_sdc1_pdata = &sdc1_data;
 #else
@@ -200,9 +207,8 @@ static struct mmc_platform_data sdc2_data = {
 	.sup_clk_cnt	= ARRAY_SIZE(sdc2_sup_clk_rates),
 	.pclk_src_dfab	= 1,
 	.pin_data	= &mmc_slot_pin_data[SDCC2],
-#ifdef CONFIG_MMC_MSM_SDIO_SUPPORT
 	.sdiowakeup_irq = MSM_GPIO_TO_INT(GPIO_SDC2_DAT1_WAKEUP),
-#endif
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 };
 static struct mmc_platform_data *msm9615_sdc2_pdata = &sdc2_data;
 #else

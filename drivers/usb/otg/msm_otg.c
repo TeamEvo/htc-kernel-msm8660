@@ -91,6 +91,7 @@ static struct regulator *hsusb_3p3;
 static struct regulator *hsusb_1p8;
 static struct regulator *hsusb_vddcx;
 static struct regulator *vbus_otg;
+static struct power_supply *psy;
 
 static bool aca_id_turned_on;
 static inline bool aca_enabled(void)
@@ -513,7 +514,7 @@ static int msm_otg_link_reset(struct msm_otg *motg)
 	/* select ULPI phy */
 	writel_relaxed(0x80000000, USB_PORTSC);
 	writel_relaxed(0x0, USB_AHBBURST);
-	writel_relaxed(0x00, USB_AHBMODE);
+	writel_relaxed(0x08, USB_AHBMODE);
 
 	return 0;
 }
@@ -572,6 +573,9 @@ static int msm_otg_reset(struct otg_transceiver *otg)
 		writel_relaxed(val, USB_OTGSC);
 		ulpi_write(otg, ulpi_val, ULPI_USB_INT_EN_RISE);
 		ulpi_write(otg, ulpi_val, ULPI_USB_INT_EN_FALL);
+	} else if (pdata->otg_control == OTG_PMIC_CONTROL) {
+		ulpi_write(otg, OTG_COMP_DISABLE,
+			ULPI_SET(ULPI_PWR_CLK_MNG_REG));
 	}
 
 	return 0;
@@ -644,15 +648,6 @@ static int msm_otg_suspend(struct msm_otg *motg)
 		ulpi_write(otg, 0x08, 0x09);
 	}
 
-	/*
-	 * Turn off the OTG comparators, if depends on PMIC for
-	 * VBUS and ID notifications.
-	 */
-	if ((motg->caps & ALLOW_PHY_COMP_DISABLE) && !host_bus_suspend) {
-		ulpi_write(otg, OTG_COMP_DISABLE,
-			ULPI_SET(ULPI_PWR_CLK_MNG_REG));
-		motg->lpm_flags |= PHY_OTG_COMP_DISABLED;
-	}
 
 	/* Set the PHCD bit, only if it is not set by the controller.
 	 * PHY may take some time or even fail to enter into low power
@@ -684,9 +679,15 @@ static int msm_otg_suspend(struct msm_otg *motg)
 	 * line must be disabled till async interrupt enable bit is cleared
 	 * in USBCMD register. Assert STP (ULPI interface STOP signal) to
 	 * block data communication from PHY.
+	 *
+	 * PHY retention mode is disallowed while entering to LPM with wall
+	 * charger connected.  But PHY is put into suspend mode. Hence
+	 * enable asynchronous interrupt to detect charger disconnection when
+	 * PMIC notifications are unavailable.
 	 */
 	cmd_val = readl_relaxed(USB_USBCMD);
-	if (host_bus_suspend)
+	if (host_bus_suspend || (motg->pdata->otg_control == OTG_PHY_CONTROL &&
+				dcp))
 		cmd_val |= ASYNC_INTR_CTRL | ULPI_STP_CTRL;
 	else
 		cmd_val |= ULPI_STP_CTRL;
@@ -820,12 +821,6 @@ static int msm_otg_resume(struct msm_otg *motg)
 	}
 
 skip_phy_resume:
-	/* Turn on the OTG comparators on resume */
-	if (motg->lpm_flags & PHY_OTG_COMP_DISABLED) {
-		ulpi_write(otg, OTG_COMP_DISABLE,
-			ULPI_CLR(ULPI_PWR_CLK_MNG_REG));
-		motg->lpm_flags &= ~PHY_OTG_COMP_DISABLED;
-	}
 	if (device_may_wakeup(otg->dev)) {
 		disable_irq_wake(motg->irq);
 		if (motg->pdata->pmic_id_irq)
@@ -847,11 +842,36 @@ skip_phy_resume:
 }
 #endif
 
+static int msm_otg_notify_chg_type(struct msm_otg *motg)
+{
+	static int charger_type;
+	/*
+	 * TODO
+	 * Unify OTG driver charger types and power supply charger types
+	 */
+	if (charger_type == motg->chg_type)
+		return 0;
+
+	if (motg->chg_type == USB_SDP_CHARGER)
+		charger_type = POWER_SUPPLY_TYPE_USB;
+	else if (motg->chg_type == USB_CDP_CHARGER)
+		charger_type = POWER_SUPPLY_TYPE_USB_CDP;
+	else if (motg->chg_type == USB_DCP_CHARGER)
+		charger_type = POWER_SUPPLY_TYPE_USB_DCP;
+	else if ((motg->chg_type == USB_ACA_DOCK_CHARGER ||
+		motg->chg_type == USB_ACA_A_CHARGER ||
+		motg->chg_type == USB_ACA_B_CHARGER ||
+		motg->chg_type == USB_ACA_C_CHARGER))
+		charger_type = POWER_SUPPLY_TYPE_USB_ACA;
+	else
+		charger_type = POWER_SUPPLY_TYPE_BATTERY;
+
+	return pm8921_set_usb_power_supply_type(charger_type);
+}
+
 static int msm_otg_notify_power_supply(struct msm_otg *motg, unsigned mA)
 {
-	struct power_supply *psy;
 
-	psy = power_supply_get_by_name("usb");
 	if (!psy)
 		goto psy_not_supported;
 
@@ -884,6 +904,11 @@ static void msm_otg_notify_charger(struct msm_otg *motg, unsigned mA)
 		motg->chg_type == USB_ACA_C_CHARGER) &&
 			mA > IDEV_ACA_CHG_LIMIT)
 		mA = IDEV_ACA_CHG_LIMIT;
+
+	if (msm_otg_notify_chg_type(motg))
+		dev_err(motg->otg.dev,
+			"Failed notifying %d charger type to PMIC\n",
+							motg->chg_type);
 
 	if (motg->cur_power == mA)
 		return;
@@ -931,6 +956,10 @@ static void msm_otg_start_host(struct otg_transceiver *otg, int on)
 	if (on) {
 		dev_dbg(otg->dev, "host on\n");
 
+		if (pdata->otg_control == OTG_PHY_CONTROL)
+			ulpi_write(otg, OTG_COMP_DISABLE,
+				ULPI_SET(ULPI_PWR_CLK_MNG_REG));
+
 		/*
 		 * Some boards have a switch cotrolled by gpio
 		 * to enable/disable internal HUB. Enable internal
@@ -948,6 +977,10 @@ static void msm_otg_start_host(struct otg_transceiver *otg, int on)
 
 		if (pdata->setup_gpio)
 			pdata->setup_gpio(OTG_STATE_UNDEFINED);
+
+		if (pdata->otg_control == OTG_PHY_CONTROL)
+			ulpi_write(otg, OTG_COMP_DISABLE,
+				ULPI_CLR(ULPI_PWR_CLK_MNG_REG));
 	}
 }
 
@@ -1019,10 +1052,12 @@ static void msm_hsusb_vbus_power(struct msm_otg *motg, bool on)
 
 	/*
 	 * if entering host mode tell the charger to not draw any current
-	 * from usb - if exiting host mode let the charger draw current
+	 * from usb before turning on the boost.
+	 * if exiting host mode disable the boost before enabling to draw
+	 * current from the source.
 	 */
-	pm8921_disable_source_current(on);
 	if (on) {
+		pm8921_disable_source_current(on);
 		ret = regulator_enable(vbus_otg);
 		if (ret) {
 			pr_err("unable to enable vbus_otg\n");
@@ -1035,6 +1070,7 @@ static void msm_hsusb_vbus_power(struct msm_otg *motg, bool on)
 			pr_err("unable to disable vbus_otg\n");
 			return;
 		}
+		pm8921_disable_source_current(on);
 		vbus_is_on = false;
 	}
 }
@@ -1793,6 +1829,9 @@ static void msm_otg_sm_work(struct work_struct *w)
 		dev_dbg(otg->dev, "OTG_STATE_UNDEFINED state\n");
 		msm_otg_reset(otg);
 		msm_otg_init_sm(motg);
+		psy = power_supply_get_by_name("usb");
+		if (!psy)
+			pr_err("couldn't get usb power supply\n");
 		otg->state = OTG_STATE_B_IDLE;
 		if (!test_bit(B_SESS_VLD, &motg->inputs) &&
 				test_bit(ID, &motg->inputs)) {
@@ -1874,9 +1913,9 @@ static void msm_otg_sm_work(struct work_struct *w)
 			}
 		} else {
 			cancel_delayed_work_sync(&motg->chg_work);
-			msm_otg_notify_charger(motg, 0);
 			motg->chg_state = USB_CHG_STATE_UNDEFINED;
 			motg->chg_type = USB_INVALID_CHARGER;
+			msm_otg_notify_charger(motg, 0);
 			msm_otg_reset(otg);
 			pm_runtime_put_noidle(otg->dev);
 			pm_runtime_suspend(otg->dev);
@@ -2680,8 +2719,7 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 			(!(motg->pdata->mode == USB_OTG) ||
 			 motg->pdata->pmic_id_irq))
 			motg->caps = ALLOW_PHY_POWER_COLLAPSE |
-				ALLOW_PHY_RETENTION |
-				ALLOW_PHY_COMP_DISABLE;
+				ALLOW_PHY_RETENTION;
 
 		if (motg->pdata->otg_control == OTG_PHY_CONTROL)
 			motg->caps = ALLOW_PHY_RETENTION;
