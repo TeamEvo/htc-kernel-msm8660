@@ -22,8 +22,6 @@
 #include "mmc_ops.h"
 #include "sd_ops.h"
 
-#define EXT_CSD_CMD_SET_ZERO	0
-
 static const unsigned int tran_exp[] = {
 	10000,		100000,		1000000,	10000000,
 	0,		0,		0,		0
@@ -361,7 +359,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 		 * card has the Enhanced area enabled.  If so, export enhanced
 		 * area offset and size to user by adding sysfs interface.
 		 */
-		card->ext_csd.raw_partition_support = ext_csd[EXT_CSD_PARTITION_SUPPORT];
 		if ((ext_csd[EXT_CSD_PARTITION_SUPPORT] & 0x2) &&
 		    (ext_csd[EXT_CSD_PARTITION_ATTRIBUTE] & 0x1)) {
 			u8 hc_erase_grp_sz =
@@ -408,7 +405,6 @@ static int mmc_read_ext_csd(struct mmc_card *card, u8 *ext_csd)
 	if (card->ext_csd.rev >= 5)
 		card->ext_csd.rel_param = ext_csd[EXT_CSD_WR_REL_PARAM];
 
-	card->ext_csd.raw_erased_mem_count = ext_csd[EXT_CSD_ERASED_MEM_CONT];
 	if (ext_csd[EXT_CSD_ERASED_MEM_CONT])
 		card->erased_byte = 0xFF;
 	else
@@ -669,10 +665,10 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 			mmc_card_set_blockaddr(card);
 	}
 
-	/* If enhanced_area_en is TRUE, host needs to enable ERASE_GRP_DEF     */
-	/* bit.  This bit will be lost every time after a reset or power off.  */
-	/* For 2GB eMMC, there will no HC_ERASE_GROUP define                   */
-
+	/*
+	 * If enhanced_area_en is TRUE, host needs to enable ERASE_GRP_DEF
+	 * bit.  This bit will be lost every time after a reset or power off.
+	 * For 2GB eMMC, there will no HC_ERASE_GROUP define */
 	if (card->ext_csd.sectors > 4194304) {
 		err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
 				 EXT_CSD_ERASE_GROUP_DEF, 1, 0);
@@ -710,37 +706,6 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 				 card->ext_csd.part_time);
 		if (err && err != -EBADMSG)
 			goto free_card;
-	}
-
-	/* For SanDisk X3, we have to enable power class 4 */
-	if (card->cid.manfid == 0x45) {
-		if (card->ext_csd.sectors > 33554432) { /* the storage size larger than 16GB */
-				err = mmc_switch(card, EXT_CSD_CMD_SET_ZERO, EXT_CSD_POWER_CLASS, 4, 0);
-				if (err && err != -EBADMSG)
-					goto free_card;
-
-				if (err) {
-					printk(KERN_WARNING "%s: switch to power class 4 failed\n",
-						mmc_hostname(card->host));
-					err = 0;
-				} else {
-					printk(KERN_WARNING "%s: switch to power class 4 sucessfully\n",
-						mmc_hostname(card->host));
-				}
-		} else if (card->ext_csd.sectors == 31105024) {
-				err = mmc_switch(card, EXT_CSD_CMD_SET_ZERO, EXT_CSD_POWER_CLASS, 4, 0);
-				if (err && err != -EBADMSG)
-					goto free_card;
-
-				if (err) {
-					printk(KERN_WARNING "%s: switch to power class 4 failed\n",
-						mmc_hostname(card->host));
-					err = 0;
-				} else {
-					printk(KERN_WARNING "%s: switch to power class 4 sucessfully\n",
-						mmc_hostname(card->host));
-				}
-		}
 	}
 
 	/*
@@ -940,7 +905,6 @@ static void mmc_detect(struct mmc_host *host)
 
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
-		mmc_power_off(host);
 		mmc_release_host(host);
 	}
 }

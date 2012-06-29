@@ -217,7 +217,6 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card,
 	mq->queue = blk_init_queue(mmc_request, lock);
 	if (!mq->queue)
 		return -ENOMEM;
-
 	mq->queue->queuedata = mq;
 	mq->req = NULL;
 

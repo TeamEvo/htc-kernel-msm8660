@@ -709,7 +709,9 @@ static int mmc_blk_issue_discard_rq(struct mmc_queue *mq, struct request *req)
 	from = blk_rq_pos(req);
 	nr = blk_rq_sectors(req);
 
-	if (mmc_can_trim(card))
+	if (mmc_can_discard(card))
+		arg = MMC_DISCARD_ARG;
+	else if (mmc_can_trim(card))
 		arg = MMC_TRIM_ARG;
 	else
 		arg = MMC_ERASE_ARG;
@@ -749,12 +751,17 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 	from = blk_rq_pos(req);
 	nr = blk_rq_sectors(req);
 
+	/* eMMC will be corrupted if secure-trim and secure-erase are
+	   adopted for Samsung 27 nm eMMC. Therefore, replace secure-trim
+	   and secure-erase args with trim and erase args respectively. */
 	if (mmc_can_trim(card) && !mmc_erase_group_aligned(card, from, nr))
-		arg = MMC_SECURE_TRIM1_ARG;
+		/* arg = MMC_SECURE_TRIM1_ARG; */
+		arg = MMC_TRIM_ARG;
 	else
-		arg = MMC_SECURE_ERASE_ARG;
+		/* arg = MMC_SECURE_ERASE_ARG; */
+		arg = MMC_ERASE_ARG;
 
-	if (card->quirks & MMC_QUIRK_INAND_CMD38) {
+	/* if (card->quirks & MMC_QUIRK_INAND_CMD38) {
 		err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
 				 INAND_CMD38_ARG_EXT_CSD,
 				 arg == MMC_SECURE_TRIM1_ARG ?
@@ -763,9 +770,9 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 				 0);
 		if (err)
 			goto out;
-	}
+	} */
 	err = mmc_erase(card, from, nr, arg);
-	if (!err && arg == MMC_SECURE_TRIM1_ARG) {
+	/* if (!err && arg == MMC_SECURE_TRIM1_ARG) {
 		if (card->quirks & MMC_QUIRK_INAND_CMD38) {
 			err = mmc_switch(card, EXT_CSD_CMD_SET_NORMAL,
 					 INAND_CMD38_ARG_EXT_CSD,
@@ -775,7 +782,7 @@ static int mmc_blk_issue_secdiscard_rq(struct mmc_queue *mq,
 				goto out;
 		}
 		err = mmc_erase(card, from, nr, MMC_SECURE_TRIM2_ARG);
-	}
+	} */
 out:
 	spin_lock_irq(&md->lock);
 	__blk_end_request(req, err, blk_rq_bytes(req));
@@ -1241,6 +1248,10 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 	struct mmc_card *card = md->queue.card;
 	struct mmc_blk_request brq;
 	int ret = 1, disable_multi = 0, retry = 0;
+	int reinit_retry = 1;
+	int err;
+	u32 status;
+	int  no_ready = 0;
 
 	/*
 	 * Reliable writes are used to implement Forced Unit Access and
@@ -1379,6 +1390,20 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		 * may have been transferred, or may still be transferring.
 		 */
 		if (brq.sbc.error || brq.cmd.error || brq.stop.error) {
+			if (reinit_retry) {
+				reinit_retry = 0;
+				err = get_card_status(card, &status, 0);
+				if (err)
+					pr_info("%s: error %d sending status command\n",
+						req->rq_disk->disk_name, err);
+				else
+					pr_info("%s: card status %#x \n", req->rq_disk->disk_name, status);
+				pr_info("%s: reinit card\n", mmc_hostname(card->host));
+				if (mmc_reinit_card(card->host) == 0) {
+					mmc_blk_set_blksize(md, card);
+					continue;
+				}
+			}
 			switch (mmc_blk_cmd_recovery(card, req, &brq)) {
 			case ERR_RETRY:
 				if (retry++ < 5)
@@ -1408,14 +1433,29 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 		 * program mode, which we have to wait for it to complete.
 		 */
 		if (!mmc_host_is_spi(card->host) && rq_data_dir(req) != READ) {
+			int i = 0;
+			unsigned long timeout = jiffies + HZ * 2;
 			u32 status;
 			do {
-				int err = get_card_status(card, &status, 5);
+				err = get_card_status(card, &status, 5);
 				if (err) {
 					printk(KERN_ERR "%s: error %d requesting status\n",
 					       req->rq_disk->disk_name, err);
 					goto cmd_err;
 				}
+				if (time_after(jiffies, timeout) && (i > 1000)) {
+					if ((status & R1_READY_FOR_DATA) &&
+						(R1_CURRENT_STATE(status) == 4)) {
+						printk(KERN_ERR "%s: timeout but get card ready i = %d\n",
+						mmc_hostname(card->host), i);
+						break;
+					}
+					no_ready = 1;
+					printk(KERN_ERR "%s: card is not ready (%d)\n",
+						mmc_hostname(card->host), i);
+					break;
+				}
+				i++;
 				/*
 				 * Some cards mishandle the status bits,
 				 * so make sure to check both the busy
@@ -1424,6 +1464,15 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 			} while (!(status & R1_READY_FOR_DATA) ||
 				 (R1_CURRENT_STATE(status) == R1_STATE_PRG));
 		}
+		if (no_ready && reinit_retry) {
+			reinit_retry = 0;
+			pr_info("%s: card status %#x \n", req->rq_disk->disk_name, status);
+			pr_info("%s: reinit card\n", mmc_hostname(card->host));
+			if (mmc_reinit_card(card->host) == 0) {
+				mmc_blk_set_blksize(md, card);
+				continue;
+			}
+		}
 
 		if (brq.data.error) {
 			pr_err("%s: error %d transferring data, sector %u, nr %u, cmd response %#x, card status %#x\n",
@@ -1431,6 +1480,20 @@ static int mmc_blk_issue_rw_rq(struct mmc_queue *mq, struct request *req)
 				(unsigned)blk_rq_pos(req),
 				(unsigned)blk_rq_sectors(req),
 				brq.cmd.resp[0], brq.stop.resp[0]);
+			if (reinit_retry) {
+				reinit_retry = 0;
+				err = get_card_status(card, &status, 0);
+				if (err)
+					pr_info("%s: error %d sending status command\n",
+						req->rq_disk->disk_name, err);
+				else
+					pr_info("%s: card status %#x \n", req->rq_disk->disk_name, status);
+				pr_info("%s: reinit card\n", mmc_hostname(card->host));
+				if (mmc_reinit_card(card->host) == 0) {
+					mmc_blk_set_blksize(md, card);
+					continue;
+				}
+			}
 
 			if (rq_data_dir(req) == READ) {
 				if (brq.data.blocks > 1) {
@@ -1939,10 +2002,6 @@ static void mmc_blk_remove_req(struct mmc_blk_data *md)
 {
 	if (md) {
 		if (md->disk->flags & GENHD_FL_UP) {
-			/* Resume queue before enter del_gendisk_async.
-			 * Flush thread may be blocked by I/O and can not be stopped when queue thread is still suspended.
-			 */
-			mmc_queue_resume(&md->queue);
 			device_remove_file(disk_to_dev(md->disk), &md->force_ro);
 
 			/* Stop new requests from getting into the queue */

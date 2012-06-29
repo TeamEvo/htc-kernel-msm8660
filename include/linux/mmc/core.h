@@ -148,10 +148,17 @@ extern int mmc_switch(struct mmc_card *, u8, u8, u8, unsigned int);
 #define MMC_SECURE_ARGS		0x80000000
 #define MMC_TRIM_ARGS		0x00008001
 
+#ifdef CONFIG_HTC_DEVICE
+#define MMC_DISCARD_ARG		0x00000003
+#endif
+
 extern int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 		     unsigned int arg);
 extern int mmc_can_erase(struct mmc_card *card);
 extern int mmc_can_trim(struct mmc_card *card);
+#ifdef CONFIG_HTC_DEVICE
+extern int mmc_can_discard(struct mmc_card *card);
+#endif
 extern int mmc_can_secure_erase_trim(struct mmc_card *card);
 extern int mmc_erase_group_aligned(struct mmc_card *card, unsigned int from,
 				   unsigned int nr);

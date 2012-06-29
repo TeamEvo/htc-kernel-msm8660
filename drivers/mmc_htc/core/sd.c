@@ -1088,7 +1088,6 @@ static void mmc_sd_detect(struct mmc_host *host)
 	err = _mmc_detect_card_removed(host);
 #endif
 	mmc_release_host(host);
-
 	if (err) {
 	/*
 	 * let card removal task run in worker thread to avoid sd-qd being blocked.
@@ -1099,7 +1098,6 @@ static void mmc_sd_detect(struct mmc_host *host)
 
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
-		mmc_power_off(host);
 		mmc_release_host(host);
 #endif
 	}

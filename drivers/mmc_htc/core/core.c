@@ -1207,6 +1207,11 @@ int mmc_resume_bus(struct mmc_host *host)
 		host->bus_ops->detect(host);
 
 	mmc_bus_put(host);
+	if (ret) {
+		spin_lock_irqsave(&host->lock, flags);
+		host->bus_resume_flags |= MMC_BUSRESUME_NEEDS_RESUME;
+		spin_unlock_irqrestore(&host->lock, flags);
+	}
 	pr_info("%s: Deferred resume %s\n", mmc_hostname(host),
 		(ret == 0 ? "completed" : "Fail"));
 	return ret;
@@ -1240,7 +1245,8 @@ void mmc_attach_bus(struct mmc_host *host, const struct mmc_bus_ops *ops)
 }
 
 /*
- * Remove the current bus handler from a host.
+ * Remove the current bus handler from a host. Assumes that there are
+ * no interesting cards left, so the bus is powered down.
  */
 void mmc_detach_bus(struct mmc_host *host)
 {
@@ -1256,6 +1262,8 @@ void mmc_detach_bus(struct mmc_host *host)
 	host->bus_dead = 1;
 
 	spin_unlock_irqrestore(&host->lock, flags);
+
+	mmc_power_off(host);
 
 	mmc_bus_put(host);
 }
@@ -1313,7 +1321,6 @@ void mmc_remove_sd_card(struct work_struct *work)
 {
 	struct mmc_host *host =
 		container_of(work, struct mmc_host, remove.work);
-
 	printk(KERN_INFO "%s: %s\n", mmc_hostname(host),
 		__func__);
 	mmc_bus_get(host);
@@ -1322,7 +1329,6 @@ void mmc_remove_sd_card(struct work_struct *work)
 			host->bus_ops->remove(host);
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
-		mmc_power_off(host);
 		mmc_release_host(host);
 	}
 	mmc_bus_put(host);
@@ -1422,12 +1428,12 @@ static unsigned int mmc_mmc_erase_timeout(struct mmc_card *card,
 	}
 
 	/* Multiplier for secure operations */
-	if (arg & MMC_SECURE_ARGS) {
+	/* if (arg & MMC_SECURE_ARGS) {
 		if (arg == MMC_SECURE_ERASE_ARG)
 			erase_timeout *= card->ext_csd.sec_erase_mult;
 		else
 			erase_timeout *= card->ext_csd.sec_trim_mult;
-	}
+	} */
 
 	erase_timeout *= qty;
 
@@ -1601,18 +1607,18 @@ int mmc_erase(struct mmc_card *card, unsigned int from, unsigned int nr,
 	if (mmc_card_sd(card) && arg != MMC_ERASE_ARG)
 		return -EOPNOTSUPP;
 
-	if ((arg & MMC_SECURE_ARGS) &&
+	/* if ((arg & MMC_SECURE_ARGS) &&
 	    !(card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN))
-		return -EOPNOTSUPP;
+		return -EOPNOTSUPP; */
 
 	if ((arg & MMC_TRIM_ARGS) &&
 	    !(card->ext_csd.sec_feature_support & EXT_CSD_SEC_GB_CL_EN))
 		return -EOPNOTSUPP;
 
-	if (arg == MMC_SECURE_ERASE_ARG) {
+	/* if (arg == MMC_SECURE_ERASE_ARG) {
 		if (from % card->erase_size || nr % card->erase_size)
 			return -EINVAL;
-	}
+	} */
 
 	if (arg == MMC_ERASE_ARG) {
 		rem = from % card->erase_size;
@@ -1661,12 +1667,24 @@ int mmc_can_trim(struct mmc_card *card)
 }
 EXPORT_SYMBOL(mmc_can_trim);
 
+int mmc_can_discard(struct mmc_card *card)
+{
+	/* Discard command could only be supported after 4.5 eMMC device.
+	   For Samsung eMMC on Evita and Ville, discard command only could be
+	   supported in Samsung VHX eMMC. (sector size is 14.56G or 29.12G) */
+	if (card->cid.manfid == 0x15) {
+		if (card->ext_csd.sectors == 30535680 ||
+		    card->ext_csd.sectors == 61071360)
+			return 1;
+	}
+
+	return 0;
+}
+
 int mmc_can_secure_erase_trim(struct mmc_card *card)
 {
-	/*
 	if (card->ext_csd.sec_feature_support & EXT_CSD_SEC_ER_EN)
 		return 1;
-	*/
 	return 0;
 }
 EXPORT_SYMBOL(mmc_can_secure_erase_trim);
@@ -1869,7 +1887,6 @@ void mmc_stop_host(struct mmc_host *host)
 
 		mmc_claim_host(host);
 		mmc_detach_bus(host);
-		mmc_power_off(host);
 		mmc_release_host(host);
 		mmc_bus_put(host);
 		return;
@@ -2122,7 +2139,6 @@ int mmc_pm_notify(struct notifier_block *notify_block,
 			host->bus_ops->remove(host);
 
 		mmc_detach_bus(host);
-		mmc_power_off(host);
 		mmc_release_host(host);
 		host->pm_flags = 0;
 		break;
@@ -2172,6 +2188,7 @@ static int __init mmc_init(void)
 
 	wake_lock_init(&mmc_removal_work_wake_lock, WAKE_LOCK_SUSPEND,
 		       "mmc_removal_work");
+
 	ret = mmc_register_bus();
 	if (ret)
 		goto destroy_workqueue;
