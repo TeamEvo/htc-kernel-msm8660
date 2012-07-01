@@ -7016,6 +7016,7 @@ eventmsg_out:
 
 }
 
+#if 0
 static int wl_construct_reginfo(struct wl_priv *wl, s32 bw_cap)
 {
 	struct net_device *dev = wl_to_prmry_ndev(wl);
@@ -7137,6 +7138,7 @@ static int wl_construct_reginfo(struct wl_priv *wl, s32 bw_cap)
 	kfree(pbuf);
 	return err;
 }
+#endif
 
 s32 wl_update_wiphybands(struct wl_priv *wl)
 {
