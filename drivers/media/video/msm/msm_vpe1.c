@@ -27,24 +27,8 @@ static int vpe_disable(void);
 static int vpe_update_scaler(struct video_crop_t *pcrop);
 static struct vpe_device_type  vpe_device_data;
 static struct vpe_device_type  *vpe_device;
+struct vpe_ctrl_type    *vpe_ctrl_liteon;
 struct vpe_ctrl_type    *vpe_ctrl;
-char *vpe_general_cmd[] = {
-	"VPE_DUMMY_0",  /* 0 */
-	"VPE_SET_CLK",
-	"VPE_RESET",
-	"VPE_START",
-	"VPE_ABORT",
-	"VPE_OPERATION_MODE_CFG",  /* 5 */
-	"VPE_INPUT_PLANE_CFG",
-	"VPE_OUTPUT_PLANE_CFG",
-	"VPE_INPUT_PLANE_UPDATE",
-	"VPE_SCALE_CFG_TYPE",
-	"VPE_ROTATION_CFG_TYPE",  /* 10 */
-	"VPE_AXI_OUT_CFG",
-	"VPE_CMD_DIS_OFFSET_CFG",
-	"VPE_ENABLE",
-	"VPE_DISABLE",
-};
 static uint32_t orig_src_y, orig_src_cbcr;
 
 #define CHECKED_COPY_FROM_USER(in) {					\
@@ -105,14 +89,14 @@ static int vpe_start(void)
 	return 0;
 }
 
-void vpe_reset_state_variables(void)
+static void vpe_reset_state_variables(void)
 {
 	/* initialize local variables for state control, etc.*/
-	vpe_ctrl->op_mode = 0;
-	vpe_ctrl->state = VPE_STATE_INIT;
-	spin_lock_init(&vpe_ctrl->tasklet_lock);
-	spin_lock_init(&vpe_ctrl->state_lock);
-	INIT_LIST_HEAD(&vpe_ctrl->tasklet_q);
+	vpe_ctrl_liteon->op_mode = 0;
+	vpe_ctrl_liteon->state = 0;
+	spin_lock_init(&vpe_ctrl_liteon->tasklet_lock);
+	spin_lock_init(&vpe_ctrl_liteon->state_lock);
+	INIT_LIST_HEAD(&vpe_ctrl_liteon->tasklet_q);
 }
 
 static void vpe_config_axi_default(void)
@@ -120,15 +104,15 @@ static void vpe_config_axi_default(void)
 	msm_io_w(0x25, vpe_device->vpebase + VPE_AXI_ARB_2_OFFSET);
 
 	CDBG("%s: yaddr %ld cbcraddr %ld", __func__,
-		 vpe_ctrl->out_y_addr, vpe_ctrl->out_cbcr_addr);
+		 vpe_ctrl_liteon->out_y_addr, vpe_ctrl_liteon->out_cbcr_addr);
 
-	if (!vpe_ctrl->out_y_addr || !vpe_ctrl->out_cbcr_addr)
+	if (!vpe_ctrl_liteon->out_y_addr || !vpe_ctrl_liteon->out_cbcr_addr)
 		return;
 
-	msm_io_w(vpe_ctrl->out_y_addr,
+	msm_io_w(vpe_ctrl_liteon->out_y_addr,
 		vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
 	/* for video  CbCr address */
-	msm_io_w(vpe_ctrl->out_cbcr_addr,
+	msm_io_w(vpe_ctrl_liteon->out_cbcr_addr,
 		vpe_device->vpebase + VPE_OUTP1_ADDR_OFFSET);
 
 }
@@ -178,7 +162,7 @@ static int vpe_reset(void)
 	return 0;
 }
 
-int msm_vpe_cfg_update(void *pinfo)
+int msm_vpe_cfg_update_liteon(void *pinfo)
 {
 	uint32_t  rot_flag, rc = 0;
 	struct video_crop_t *pcrop = (struct video_crop_t *)pinfo;
@@ -198,7 +182,7 @@ int msm_vpe_cfg_update(void *pinfo)
 	return rc;
 }
 
-void vpe_update_scale_coef(uint32_t *p)
+static void vpe_update_scale_coef(uint32_t *p)
 {
 	uint32_t i, offset;
 	offset = *p;
@@ -208,25 +192,25 @@ void vpe_update_scale_coef(uint32_t *p)
 	}
 }
 
-void vpe_input_plane_config(uint32_t *p)
+static void vpe_input_plane_config(uint32_t *p)
 {
 	msm_io_w(*p, vpe_device->vpebase + VPE_SRC_FORMAT_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_UNPACK_PATTERN1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_IMAGE_SIZE_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_YSTRIDE1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_SIZE_OFFSET);
-	vpe_ctrl->in_h_w = *p;
+	vpe_ctrl_liteon->in_h_w = *p;
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 }
 
-void vpe_output_plane_config(uint32_t *p)
+static void vpe_output_plane_config(uint32_t *p)
 {
 	msm_io_w(*p, vpe_device->vpebase + VPE_OUT_FORMAT_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_PACK_PATTERN1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_YSTRIDE1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_SIZE_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_XY_OFFSET);
-	vpe_ctrl->pcbcr_dis_offset = *(++p);
+	vpe_ctrl_liteon->pcbcr_dis_offset = *(++p);
 }
 
 static int vpe_operation_config(uint32_t *p)
@@ -240,13 +224,13 @@ static int vpe_operation_config(uint32_t *p)
 
 	if (*p++ & 0xE00) {
 		/* rotation enabled. */
-		vpe_ctrl->out_w = outh;
-		vpe_ctrl->out_h = outw;
+		vpe_ctrl_liteon->out_w = outh;
+		vpe_ctrl_liteon->out_h = outw;
 	} else {
-		vpe_ctrl->out_w = outw;
-		vpe_ctrl->out_h = outh;
+		vpe_ctrl_liteon->out_w = outw;
+		vpe_ctrl_liteon->out_h = outh;
 	}
-	vpe_ctrl->dis_en = *p;
+	vpe_ctrl_liteon->dis_en = *p;
 	return 0;
 }
 
@@ -285,8 +269,8 @@ static int vpe_update_scaler(struct video_crop_t *pcrop)
 
 		msm_io_w(0, vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 
-		CDBG("vpe_ctrl->in_h_w = %d \n", vpe_ctrl->in_h_w);
-		msm_io_w(vpe_ctrl->in_h_w , vpe_device->vpebase +
+		CDBG("vpe_ctrl_liteon->in_h_w = %d \n", vpe_ctrl_liteon->in_h_w);
+		msm_io_w(vpe_ctrl_liteon->in_h_w , vpe_device->vpebase +
 				VPE_SRC_SIZE_OFFSET);
 
 		return rc;
@@ -514,8 +498,8 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 
 		msm_io_w(src_xy, vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 
-		CDBG("vpe_ctrl->in_h_w = 0x%x \n", vpe_ctrl->in_h_w);
-		msm_io_w(vpe_ctrl->in_h_w, vpe_device->vpebase +
+		CDBG("vpe_ctrl_liteon->in_h_w = 0x%x \n", vpe_ctrl_liteon->in_h_w);
+		msm_io_w(vpe_ctrl_liteon->in_h_w, vpe_device->vpebase +
 				 VPE_SRC_SIZE_OFFSET);
 		return rc;
 	}
@@ -536,8 +520,8 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 	src_x = zoom_dis_x + (pcrop->out2_w-pcrop->in2_w)/2;
 	src_y = zoom_dis_y + (pcrop->out2_h-pcrop->in2_h)/2;
 
-	out_ROI_width = vpe_ctrl->out_w;
-	out_ROI_height = vpe_ctrl->out_h;
+	out_ROI_width = vpe_ctrl_liteon->out_w;
+	out_ROI_height = vpe_ctrl_liteon->out_h;
 
 	src_ROI_width = out_ROI_width * pcrop->in2_w / pcrop->out2_w;
 	src_ROI_height = out_ROI_height * pcrop->in2_h / pcrop->out2_h;
@@ -709,7 +693,7 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 	return 1;
 }
 
-void msm_send_frame_to_vpe(uint32_t p0_phy_add, uint32_t p1_phy_add,
+void msm_send_frame_to_vpe_liteon(uint32_t p0_phy_add, uint32_t p1_phy_add,
 		struct timespec *ts, int output_type)
 {
 	uint32_t temp_pyaddr = 0, temp_pcbcraddr = 0;
@@ -719,37 +703,37 @@ void msm_send_frame_to_vpe(uint32_t p0_phy_add, uint32_t p1_phy_add,
 	msm_io_w(p0_phy_add, vpe_device->vpebase + VPE_SRCP0_ADDR_OFFSET);
 	msm_io_w(p1_phy_add, vpe_device->vpebase + VPE_SRCP1_ADDR_OFFSET);
 
-	if (vpe_ctrl->state == VPE_STATE_ACTIVE)
+	if (vpe_ctrl_liteon->state == VPE_STATE_ACTIVE)
 		CDBG(" =====VPE is busy!!!  Wrong!========\n");
 
 	if (output_type != OUTPUT_TYPE_ST_R)
-		vpe_ctrl->ts = *ts;
+		vpe_ctrl_liteon->ts = *ts;
 
 	if (output_type == OUTPUT_TYPE_ST_L) {
-		vpe_ctrl->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
+		vpe_ctrl_liteon->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 		temp_pyaddr = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP0_ADDR_OFFSET);
-		temp_pcbcraddr = temp_pyaddr + PAD_TO_2K(vpe_ctrl->out_w *
-			vpe_ctrl->out_h * 2, vpe_ctrl->pad_2k_bool);
+		temp_pcbcraddr = temp_pyaddr + PAD_TO_2K(vpe_ctrl_liteon->out_w *
+			vpe_ctrl_liteon->out_h * 2, vpe_ctrl_liteon->pad_2k_bool);
 		msm_io_w(temp_pcbcraddr, vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 	}
 
-	if (vpe_ctrl->dis_en) {
+	if (vpe_ctrl_liteon->dis_en) {
 		/* Changing the VPE output CBCR address,
 		to make Y/CBCR continuous */
-		vpe_ctrl->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
+		vpe_ctrl_liteon->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 		temp_pyaddr = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP0_ADDR_OFFSET);
-		temp_pcbcraddr = temp_pyaddr + vpe_ctrl->pcbcr_dis_offset;
+		temp_pcbcraddr = temp_pyaddr + vpe_ctrl_liteon->pcbcr_dis_offset;
 		msm_io_w(temp_pcbcraddr, vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 	}
 
-	vpe_ctrl->output_type = output_type;
-	vpe_ctrl->state = VPE_STATE_ACTIVE;
+	vpe_ctrl_liteon->output_type = output_type;
+	vpe_ctrl_liteon->state = VPE_STATE_ACTIVE;
 	vpe_start();
 }
 
@@ -760,9 +744,8 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 	struct msm_queue_cmd *qcmd = NULL;
 	struct msm_vpe_buf_info *vpe_buf;
 	int turbo_mode = 0;
-	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl->syncdata;
-	CDBG("vpe_proc_general: cmdID = %s, length = %d\n",
-		vpe_general_cmd[cmd->id], cmd->length);
+	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl_liteon->syncdata;
+//	CDBG("vpe_proc_general: cmdID = %s, length = %d\n", vpe_general_cmd[cmd->id], cmd->length);
 	switch (cmd->id) {
 	case VPE_ENABLE:
 		cmdp = kmalloc(cmd->length, GFP_ATOMIC);
@@ -869,7 +852,7 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 			goto vpe_proc_general_done;
 		}
 		/* get the offset. */
-		vpe_ctrl->dis_offset = *(struct dis_offset_type *)cmdp;
+		vpe_ctrl_liteon->dis_offset = *(struct dis_offset_type *)cmdp;
 		qcmd = msm_dequeue_vpe(&sync->vpe_q, list_vpe_frame);
 		if (!qcmd) {
 			pr_err("%s: no video frame.\n", __func__);
@@ -879,9 +862,9 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 		vdata = (struct msm_vfe_resp *)(qcmd->command);
 		vpe_buf = &vdata->vpe_bf;
 		vpe_update_scaler_with_dis(&(vpe_buf->vpe_crop),
-					&(vpe_ctrl->dis_offset));
+					&(vpe_ctrl_liteon->dis_offset));
 
-		msm_send_frame_to_vpe(vpe_buf->p0_phy, vpe_buf->p1_phy,
+		msm_send_frame_to_vpe(vpe_buf->y_phy, vpe_buf->cbcr_phy,
 						&(vpe_buf->ts), OUTPUT_TYPE_V);
 
 		if (!qcmd || !atomic_read(&qcmd->on_heap)) {
@@ -919,20 +902,20 @@ static void vpe_addr_convert(struct msm_vpe_phy_info *pinfo,
 
 	CDBG("In vpe_addr_convert output_id = %d\n", pinfo->output_id);
 
-	pinfo->p0_phy =
+	pinfo->y_phy =
 		((struct vpe_message *)data)->_u.msgOut.p0_Buffer;
-	pinfo->p1_phy =
+	pinfo->cbcr_phy =
 		((struct vpe_message *)data)->_u.msgOut.p1_Buffer;
-	*ext  = vpe_ctrl->extdata;
-	*elen = vpe_ctrl->extlen;
+	*ext  = vpe_ctrl_liteon->extdata;
+	*elen = vpe_ctrl_liteon->extlen;
 }
 
-void vpe_proc_ops(uint8_t id, void *msg, size_t len)
+static void vpe_proc_ops(uint8_t id, void *msg, size_t len)
 {
 	struct msm_vpe_resp *rp;
 
-	rp = vpe_ctrl->resp->vpe_alloc(sizeof(struct msm_vpe_resp),
-		vpe_ctrl->syncdata, GFP_ATOMIC);
+	rp = vpe_ctrl_liteon->resp->vpe_alloc(sizeof(struct msm_vpe_resp),
+		vpe_ctrl_liteon->syncdata, GFP_ATOMIC);
 	if (!rp) {
 		CDBG("rp: cannot allocate buffer\n");
 		return;
@@ -969,14 +952,14 @@ void vpe_proc_ops(uint8_t id, void *msg, size_t len)
 		break;
 	}
 	CDBG("%s: time = %ld\n",
-			__func__, vpe_ctrl->ts.tv_nsec);
+			__func__, vpe_ctrl_liteon->ts.tv_nsec);
 
-	vpe_ctrl->resp->vpe_resp(rp, MSM_CAM_Q_VPE_MSG,
-					vpe_ctrl->syncdata,
-					&(vpe_ctrl->ts), GFP_ATOMIC);
+	vpe_ctrl_liteon->resp->vpe_resp(rp, MSM_CAM_Q_VPE_MSG,
+					vpe_ctrl_liteon->syncdata,
+					&(vpe_ctrl_liteon->ts), GFP_ATOMIC);
 }
 
-int vpe_config_axi(struct axidata *ad)
+static int vpe_config_axi(struct axidata *ad)
 {
 	uint32_t p1;
 	struct msm_pmem_region *regp1 = NULL;
@@ -996,7 +979,7 @@ int vpe_config_axi(struct axidata *ad)
 	return 0;
 }
 
-int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
+int msm_vpe_config_liteon(struct msm_vpe_cfg_cmd *cmd, void *data)
 {
 	struct msm_vpe_cmd vpecmd;
 	int rc = 0;
@@ -1031,7 +1014,7 @@ int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
 	return rc;
 }
 
-void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
+void msm_vpe_offset_update_liteon(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	struct timespec *ts, int output_id, struct msm_st_half st_half,
 	int frameid)
 {
@@ -1042,11 +1025,11 @@ void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	vpe_buf.vpe_crop.in2_h = st_half.stCropInfo.in_h;
 	vpe_buf.vpe_crop.out2_w = st_half.stCropInfo.out_w;
 	vpe_buf.vpe_crop.out2_h = st_half.stCropInfo.out_h;
-	vpe_ctrl->dis_offset.dis_offset_x = st_half.pix_x_off;
-	vpe_ctrl->dis_offset.dis_offset_y = st_half.pix_y_off;
-	vpe_ctrl->dis_offset.frame_id = frameid;
-	vpe_ctrl->frame_pack = frame_pack;
-	vpe_ctrl->output_type = output_id;
+	vpe_ctrl_liteon->dis_offset.dis_offset_x = st_half.pix_x_off;
+	vpe_ctrl_liteon->dis_offset.dis_offset_y = st_half.pix_y_off;
+	vpe_ctrl_liteon->dis_offset.frame_id = frameid;
+	vpe_ctrl_liteon->frame_pack = frame_pack;
+	vpe_ctrl_liteon->output_type = output_id;
 
 	input_stride = (st_half.buf_p1_stride * (1<<16)) +
 		st_half.buf_p0_stride;
@@ -1054,7 +1037,7 @@ void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	msm_io_w(input_stride, vpe_device->vpebase + VPE_SRC_YSTRIDE1_OFFSET);
 
 	vpe_update_scaler_with_dis(&(vpe_buf.vpe_crop),
-		&(vpe_ctrl->dis_offset));
+		&(vpe_ctrl_liteon->dis_offset));
 
 	msm_send_frame_to_vpe(pyaddr, pcbcraddr, ts, output_id);
 }
@@ -1073,10 +1056,10 @@ static void vpe_send_outmsg(uint8_t msgid, uint32_t p0_addr,
 	return;
 }
 
-int msm_vpe_reg(struct msm_vpe_callback *presp)
+int msm_vpe_reg_liteon(struct msm_vpe_callback *presp)
 {
 	if (presp && presp->vpe_resp)
-		vpe_ctrl->resp = presp;
+		vpe_ctrl_liteon->resp = presp;
 
 	return 0;
 }
@@ -1100,23 +1083,23 @@ static void vpe_do_tasklet(unsigned long data)
 
 	CDBG("=== vpe_do_tasklet start === \n");
 
-	spin_lock_irqsave(&vpe_ctrl->tasklet_lock, flags);
-	qcmd = list_first_entry(&vpe_ctrl->tasklet_q,
+	spin_lock_irqsave(&vpe_ctrl_liteon->tasklet_lock, flags);
+	qcmd = list_first_entry(&vpe_ctrl_liteon->tasklet_q,
 		struct vpe_isr_queue_cmd_type, list);
 
 	if (!qcmd) {
-		spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+		spin_unlock_irqrestore(&vpe_ctrl_liteon->tasklet_lock, flags);
 		return;
 	}
 
 	list_del(&qcmd->list);
-	spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+	spin_unlock_irqrestore(&vpe_ctrl_liteon->tasklet_lock, flags);
 
 	/* interrupt to be processed,  *qcmd has the payload.  */
 	if (qcmd->irq_status & 0x1) {
-		if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_L) {
+		if (vpe_ctrl_liteon->output_type == OUTPUT_TYPE_ST_L) {
 			CDBG("vpe left frame done.\n");
-			vpe_ctrl->output_type = 0;
+			vpe_ctrl_liteon->output_type = 0;
 			CDBG("vpe send out msg.\n");
 			orig_src_y = msm_io_r(vpe_device->vpebase +
 				VPE_SRCP0_ADDR_OFFSET);
@@ -1128,55 +1111,55 @@ static void vpe_do_tasklet(unsigned long data)
 			pcbcraddr = msm_io_r(vpe_device->vpebase +
 				VPE_OUTP1_ADDR_OFFSET);
 			CDBG("%s: out_w = %d, out_h = %d\n", __func__,
-				vpe_ctrl->out_w, vpe_ctrl->out_h);
+				vpe_ctrl_liteon->out_w, vpe_ctrl_liteon->out_h);
 
-			if ((vpe_ctrl->frame_pack == TOP_DOWN_FULL) ||
-				(vpe_ctrl->frame_pack == TOP_DOWN_HALF)) {
-				msm_io_w(pyaddr + (vpe_ctrl->out_w *
-					vpe_ctrl->out_h), vpe_device->vpebase +
+			if ((vpe_ctrl_liteon->frame_pack == TOP_DOWN_FULL) ||
+				(vpe_ctrl_liteon->frame_pack == TOP_DOWN_HALF)) {
+				msm_io_w(pyaddr + (vpe_ctrl_liteon->out_w *
+					vpe_ctrl_liteon->out_h), vpe_device->vpebase +
 					VPE_OUTP0_ADDR_OFFSET);
-				msm_io_w(pcbcraddr + (vpe_ctrl->out_w *
-					vpe_ctrl->out_h/2),
+				msm_io_w(pcbcraddr + (vpe_ctrl_liteon->out_w *
+					vpe_ctrl_liteon->out_h/2),
 					vpe_device->vpebase +
 					VPE_OUTP1_ADDR_OFFSET);
-			} else if ((vpe_ctrl->frame_pack ==
-				SIDE_BY_SIDE_HALF) || (vpe_ctrl->frame_pack ==
+			} else if ((vpe_ctrl_liteon->frame_pack ==
+				SIDE_BY_SIDE_HALF) || (vpe_ctrl_liteon->frame_pack ==
 				SIDE_BY_SIDE_FULL)) {
-				msm_io_w(pyaddr + vpe_ctrl->out_w,
+				msm_io_w(pyaddr + vpe_ctrl_liteon->out_w,
 					vpe_device->vpebase +
 					VPE_OUTP0_ADDR_OFFSET);
-				msm_io_w(pcbcraddr + vpe_ctrl->out_w,
+				msm_io_w(pcbcraddr + vpe_ctrl_liteon->out_w,
 					vpe_device->vpebase +
 					VPE_OUTP1_ADDR_OFFSET);
 			} else
 				CDBG("%s: Invalid packing = %d\n", __func__,
-					vpe_ctrl->frame_pack);
+					vpe_ctrl_liteon->frame_pack);
 
 			vpe_send_msg_no_payload(MSG_ID_VPE_OUTPUT_ST_L);
-			vpe_ctrl->state = VPE_STATE_INIT;
+			vpe_ctrl_liteon->state = VPE_STATE_INIT;
 			kfree(qcmd);
 			return;
-		} else if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R) {
+		} else if (vpe_ctrl_liteon->output_type == OUTPUT_TYPE_ST_R) {
 			src_y = orig_src_y;
 			src_cbcr = orig_src_cbcr;
 			CDBG("%s: out_w = %d, out_h = %d\n", __func__,
-				vpe_ctrl->out_w, vpe_ctrl->out_h);
+				vpe_ctrl_liteon->out_w, vpe_ctrl_liteon->out_h);
 
-			if ((vpe_ctrl->frame_pack == TOP_DOWN_FULL) ||
-				(vpe_ctrl->frame_pack == TOP_DOWN_HALF)) {
+			if ((vpe_ctrl_liteon->frame_pack == TOP_DOWN_FULL) ||
+				(vpe_ctrl_liteon->frame_pack == TOP_DOWN_HALF)) {
 				pyaddr = msm_io_r(vpe_device->vpebase +
 					VPE_OUTP0_ADDR_OFFSET) -
-					(vpe_ctrl->out_w * vpe_ctrl->out_h);
-			} else if ((vpe_ctrl->frame_pack ==
-				SIDE_BY_SIDE_HALF) || (vpe_ctrl->frame_pack ==
+					(vpe_ctrl_liteon->out_w * vpe_ctrl_liteon->out_h);
+			} else if ((vpe_ctrl_liteon->frame_pack ==
+				SIDE_BY_SIDE_HALF) || (vpe_ctrl_liteon->frame_pack ==
 				SIDE_BY_SIDE_FULL)) {
 				pyaddr = msm_io_r(vpe_device->vpebase +
-				VPE_OUTP0_ADDR_OFFSET) - vpe_ctrl->out_w;
+				VPE_OUTP0_ADDR_OFFSET) - vpe_ctrl_liteon->out_w;
 			} else
 				CDBG("%s: Invalid packing = %d\n", __func__,
-					vpe_ctrl->frame_pack);
+					vpe_ctrl_liteon->frame_pack);
 
-			pcbcraddr = vpe_ctrl->pcbcr_before_dis;
+			pcbcraddr = vpe_ctrl_liteon->pcbcr_before_dis;
 		} else {
 			src_y =	msm_io_r(vpe_device->vpebase +
 				VPE_SRCP0_ADDR_OFFSET);
@@ -1188,8 +1171,8 @@ static void vpe_do_tasklet(unsigned long data)
 				VPE_OUTP1_ADDR_OFFSET);
 		}
 
-		if (vpe_ctrl->dis_en)
-			pcbcraddr = vpe_ctrl->pcbcr_before_dis;
+		if (vpe_ctrl_liteon->dis_en)
+			pcbcraddr = vpe_ctrl_liteon->pcbcr_before_dis;
 
 		msm_io_w(src_y,
 				vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
@@ -1201,23 +1184,23 @@ static void vpe_do_tasklet(unsigned long data)
 		msm_io_w(temp, vpe_device->vpebase + VPE_OP_MODE_OFFSET);
 
 		/*  now pass this frame to msm_camera.c. */
-		if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R) {
+		if (vpe_ctrl_liteon->output_type == OUTPUT_TYPE_ST_R) {
 			CDBG("vpe send out R msg.\n");
 			vpe_send_outmsg(MSG_ID_VPE_OUTPUT_ST_R, pyaddr,
 				pcbcraddr, pyaddr);
-		} else if (vpe_ctrl->output_type == OUTPUT_TYPE_V) {
+		} else if (vpe_ctrl_liteon->output_type == OUTPUT_TYPE_V) {
 			CDBG("vpe send out V msg.\n");
 			vpe_send_outmsg(MSG_ID_VPE_OUTPUT_V, pyaddr,
 				pcbcraddr, pyaddr);
 		}
 
-		vpe_ctrl->output_type = 0;
-		vpe_ctrl->state = VPE_STATE_INIT;   /* put it back to idle. */
+		vpe_ctrl_liteon->output_type = 0;
+		vpe_ctrl_liteon->state = VPE_STATE_INIT;   /* put it back to idle. */
 
 	}
 	kfree(qcmd);
 }
-DECLARE_TASKLET(vpe_tasklet, vpe_do_tasklet, 0);
+static DECLARE_TASKLET(vpe_tasklet, vpe_do_tasklet, 0);
 
 static irqreturn_t vpe_parse_irq(int irq_num, void *data)
 {
@@ -1250,9 +1233,9 @@ static irqreturn_t vpe_parse_irq(int irq_num, void *data)
 		/* must be 0x1 now. so in bottom half we don't really
 		need to check. */
 		qcmd->irq_status = irq_status & 0x1;
-		spin_lock_irqsave(&vpe_ctrl->tasklet_lock, flags);
-		list_add_tail(&qcmd->list, &vpe_ctrl->tasklet_q);
-		spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+		spin_lock_irqsave(&vpe_ctrl_liteon->tasklet_lock, flags);
+		list_add_tail(&qcmd->list, &vpe_ctrl_liteon->tasklet_q);
+		spin_unlock_irqrestore(&vpe_ctrl_liteon->tasklet_lock, flags);
 		tasklet_schedule(&vpe_tasklet);
 	}
 	return IRQ_HANDLED;
@@ -1267,33 +1250,34 @@ static int vpe_enable_irq(void)
 	return rc;
 }
 
-int msm_vpe_open(void)
+int msm_vpe_open_liteon(void)
 {
 	int rc = 0;
 
 	CDBG("%s: In \n", __func__);
 
-	vpe_ctrl = kzalloc(sizeof(struct vpe_ctrl_type), GFP_KERNEL);
-	if (!vpe_ctrl) {
+	vpe_ctrl_liteon = kzalloc(sizeof(struct vpe_ctrl_type), GFP_KERNEL);
+    vpe_ctrl = vpe_ctrl_liteon;
+	if (!vpe_ctrl_liteon) {
 		pr_err("%s: no memory!\n", __func__);
 		return -ENOMEM;
 	}
 
-	spin_lock_init(&vpe_ctrl->ops_lock);
+	spin_lock_init(&vpe_ctrl_liteon->ops_lock);
 	CDBG("%s: Out\n", __func__);
 
 	return rc;
 }
 
-int msm_vpe_release(void)
+int msm_vpe_release_liteon(void)
 {
 	/* clean up....*/
 	int rc = 0;
-	CDBG("%s: state %d\n", __func__, vpe_ctrl->state);
-	if (vpe_ctrl->state != VPE_STATE_IDLE)
+	CDBG("%s: state %d\n", __func__, vpe_ctrl_liteon->state);
+	if (vpe_ctrl_liteon->state != VPE_STATE_IDLE)
 		rc = vpe_disable();
 
-	kfree(vpe_ctrl);
+	kfree(vpe_ctrl_liteon);
 	return rc;
 }
 
@@ -1304,19 +1288,19 @@ int vpe_enable(uint32_t clk_rate)
 	unsigned long flags = 0;
 	/* don't change the order of clock and irq.*/
 	CDBG("%s: enable_clock rate %u\n", __func__, clk_rate);
-	spin_lock_irqsave(&vpe_ctrl->ops_lock, flags);
-	if (vpe_ctrl->state != VPE_STATE_IDLE) {
+	spin_lock_irqsave(&vpe_ctrl_liteon->ops_lock, flags);
+	if (vpe_ctrl_liteon->state != VPE_STATE_IDLE) {
 		CDBG("%s: VPE already enabled", __func__);
-		spin_unlock_irqrestore(&vpe_ctrl->ops_lock, flags);
+		spin_unlock_irqrestore(&vpe_ctrl_liteon->ops_lock, flags);
 		return 0;
 	}
-	vpe_ctrl->state = VPE_STATE_INIT;
-	spin_unlock_irqrestore(&vpe_ctrl->ops_lock, flags);
+	vpe_ctrl_liteon->state = VPE_STATE_INIT;
+	spin_unlock_irqrestore(&vpe_ctrl_liteon->ops_lock, flags);
 
 	rc = msm_camio_vpe_clk_enable(clk_rate);
 	if (rc < 0) {
 		pr_err("%s: msm_camio_vpe_clk_enable failed", __func__);
-		vpe_ctrl->state = VPE_STATE_IDLE;
+		vpe_ctrl_liteon->state = VPE_STATE_IDLE;
 		return rc;
 	}
 
@@ -1324,8 +1308,8 @@ int vpe_enable(uint32_t clk_rate)
 	vpe_enable_irq();
 
 	/* initialize the data structure - lock, queue etc. */
-	spin_lock_init(&vpe_ctrl->tasklet_lock);
-	INIT_LIST_HEAD(&vpe_ctrl->tasklet_q);
+	spin_lock_init(&vpe_ctrl_liteon->tasklet_lock);
+	INIT_LIST_HEAD(&vpe_ctrl_liteon->tasklet_q);
 
 	return rc;
 }
@@ -1335,17 +1319,17 @@ int vpe_disable(void)
 	int rc = 0;
 	unsigned long flags = 0;
 	CDBG("%s: called", __func__);
-	spin_lock_irqsave(&vpe_ctrl->ops_lock, flags);
-	if (vpe_ctrl->state == VPE_STATE_IDLE) {
+	spin_lock_irqsave(&vpe_ctrl_liteon->ops_lock, flags);
+	if (vpe_ctrl_liteon->state == VPE_STATE_IDLE) {
 		CDBG("%s: VPE already disabled", __func__);
-		spin_unlock_irqrestore(&vpe_ctrl->ops_lock, flags);
+		spin_unlock_irqrestore(&vpe_ctrl_liteon->ops_lock, flags);
 		return 0;
 	}
-	vpe_ctrl->state = VPE_STATE_IDLE;
-	spin_unlock_irqrestore(&vpe_ctrl->ops_lock, flags);
-	vpe_ctrl->out_y_addr = msm_io_r(vpe_device->vpebase +
+	vpe_ctrl_liteon->state = VPE_STATE_IDLE;
+	spin_unlock_irqrestore(&vpe_ctrl_liteon->ops_lock, flags);
+	vpe_ctrl_liteon->out_y_addr = msm_io_r(vpe_device->vpebase +
 		VPE_OUTP0_ADDR_OFFSET);
-	vpe_ctrl->out_cbcr_addr = msm_io_r(vpe_device->vpebase +
+	vpe_ctrl_liteon->out_cbcr_addr = msm_io_r(vpe_device->vpebase +
 		VPE_OUTP1_ADDR_OFFSET);
 	free_irq(vpe_device->vpeirq, 0);
 	tasklet_kill(&vpe_tasklet);
@@ -1410,6 +1394,69 @@ vpe_free_device:
 	return rc;  /* this rc should have error code. */
 }
 
+extern unsigned engineerid;
+extern unsigned system_rev;
+
+int msm_vpe_open_8x60(void);
+int msm_vpe_release_8x60(void);
+int msm_vpe_reg_8x60(struct msm_vpe_callback *presp);
+void msm_send_frame_to_vpe_8x60(uint32_t pyaddr, uint32_t pcbcraddr,
+	struct timespec *ts, int output_id);
+int msm_vpe_config_8x60(struct msm_vpe_cfg_cmd *cmd, void *data);
+int msm_vpe_cfg_update_8x60(void *pinfo);
+void msm_vpe_offset_update_8x60(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
+	struct timespec *ts, int output_id, struct msm_st_half st_half,
+	int frameid);
+
+int msm_vpe_open(void)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_open_liteon();
+    return msm_vpe_open_8x60();
+}
+
+int msm_vpe_release(void)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_release_liteon();
+    return msm_vpe_release_8x60();
+}
+
+int msm_vpe_reg(struct msm_vpe_callback *presp)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_reg_liteon(presp);
+    return msm_vpe_reg_8x60(presp);
+}
+
+void msm_send_frame_to_vpe(uint32_t pyaddr, uint32_t pcbcraddr, struct timespec *ts, int output_id)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_send_frame_to_vpe_liteon(pyaddr,pcbcraddr,ts,output_id);
+    return msm_send_frame_to_vpe_8x60(pyaddr,pcbcraddr,ts,output_id);
+}
+
+int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_config_liteon(cmd,data);
+    return msm_vpe_config_8x60(cmd,data);
+}
+
+int msm_vpe_cfg_update(void *pinfo)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_cfg_update_liteon(pinfo);
+    return msm_vpe_cfg_update_8x60(pinfo);
+}
+
+void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr, struct timespec *ts, int output_id, struct msm_st_half st_half, int frameid)
+{
+    if (system_rev == 0x80 && engineerid == 0x1)
+        return msm_vpe_offset_update_liteon(frame_pack,pyaddr,pcbcraddr,ts,output_id,st_half,frameid);
+    return msm_vpe_offset_update_8x60(frame_pack,pyaddr,pcbcraddr,ts,output_id,st_half,frameid);
+}
+
 static int __msm_vpe_remove(struct platform_device *pdev)
 {
 	struct resource	*vpemem;
@@ -1432,7 +1479,10 @@ static struct platform_driver msm_vpe_driver = {
 
 static int __init msm_vpe_init(void)
 {
-	return platform_driver_register(&msm_vpe_driver);
+	if (system_rev == 0x80 && engineerid == 0x1)
+		return platform_driver_register(&msm_vpe_driver);
+	else
+		return 0;
 }
 module_init(msm_vpe_init);
 

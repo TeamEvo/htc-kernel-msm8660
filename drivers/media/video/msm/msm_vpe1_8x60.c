@@ -29,10 +29,21 @@
 #include <asm/div64.h>
 #include <mach/board_htc.h>
 
+#ifdef CONFIG_MACH_SHOOTER
+#define vpe_ctrl_8x60                           vpe_ctrl
+#define msm_vpe_cfg_update_8x60                 msm_vpe_cfg_update
+#define msm_send_frame_to_vpe_8x60              msm_send_frame_to_vpe
+#define msm_vpe_config_8x60                     msm_vpe_config
+#define msm_vpe_offset_update_8x60              msm_vpe_offset_update
+#define msm_vpe_reg_8x60                        msm_vpe_reg
+#define msm_vpe_open_8x60                       msm_vpe_open
+#define msm_vpe_release_8x60                    msm_vpe_release
+#endif
+
 static int vpe_update_scaler(struct video_crop_t *pcrop);
 static struct vpe_device_type  vpe_device_data;
 static struct vpe_device_type  *vpe_device;
-struct vpe_ctrl_type    *vpe_ctrl;
+struct vpe_ctrl_type    *vpe_ctrl_8x60;
 char *vpe_general_cmd[] = {
 	"VPE_DUMMY_0",  /* 0 */
 	"VPE_SET_CLK",
@@ -100,7 +111,7 @@ static long long vpe_do_div(long long num, long long den)
 static int vpe_start(void)
 {
 #ifdef CONFIG_CAMERA_3D
-	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl->syncdata;
+	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl_8x60->syncdata;
 #endif
 	/*  enable the frame irq, bit 0 = Display list 0 ROI done */
 	msm_io_w(1, vpe_device->vpebase + VPE_INTR_ENABLE_OFFSET);
@@ -119,11 +130,11 @@ static int vpe_start(void)
 void vpe_reset_state_variables(void)
 {
 	/* initialize local variables for state control, etc.*/
-	vpe_ctrl->op_mode = 0;
-	vpe_ctrl->state = 0;
-	spin_lock_init(&vpe_ctrl->tasklet_lock);
-	spin_lock_init(&vpe_ctrl->state_lock);
-	INIT_LIST_HEAD(&vpe_ctrl->tasklet_q);
+	vpe_ctrl_8x60->op_mode = 0;
+	vpe_ctrl_8x60->state = 0;
+	spin_lock_init(&vpe_ctrl_8x60->tasklet_lock);
+	spin_lock_init(&vpe_ctrl_8x60->state_lock);
+	INIT_LIST_HEAD(&vpe_ctrl_8x60->tasklet_q);
 }
 
 static int vpe_reset(void)
@@ -170,7 +181,7 @@ static int vpe_reset(void)
 	return 0;
 }
 
-int msm_vpe_cfg_update(void *pinfo)
+int msm_vpe_cfg_update_8x60(void *pinfo)
 {
 	uint32_t  rot_flag, rc = 0;
 	struct video_crop_t *pcrop = (struct video_crop_t *)pinfo;
@@ -207,7 +218,7 @@ void vpe_input_plane_config(uint32_t *p)
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_IMAGE_SIZE_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_YSTRIDE1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_SIZE_OFFSET);
-	vpe_ctrl->in_h_w = *p;
+	vpe_ctrl_8x60->in_h_w = *p;
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 }
 
@@ -218,7 +229,7 @@ void vpe_output_plane_config(uint32_t *p)
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_YSTRIDE1_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_SIZE_OFFSET);
 	msm_io_w(*(++p), vpe_device->vpebase + VPE_OUT_XY_OFFSET);
-	vpe_ctrl->pcbcr_dis_offset = *(++p);
+	vpe_ctrl_8x60->pcbcr_dis_offset = *(++p);
 }
 
 static int vpe_operation_config(uint32_t *p)
@@ -232,13 +243,13 @@ static int vpe_operation_config(uint32_t *p)
 
 	if (*p++ & 0xE00) {
 		/* rotation enabled. */
-		vpe_ctrl->out_w = outh;
-		vpe_ctrl->out_h = outw;
+		vpe_ctrl_8x60->out_w = outh;
+		vpe_ctrl_8x60->out_h = outw;
 	} else {
-		vpe_ctrl->out_w = outw;
-		vpe_ctrl->out_h = outh;
+		vpe_ctrl_8x60->out_w = outw;
+		vpe_ctrl_8x60->out_h = outh;
 	}
-	vpe_ctrl->dis_en = *p;
+	vpe_ctrl_8x60->dis_en = *p;
 	return 0;
 }
 
@@ -277,8 +288,8 @@ static int vpe_update_scaler(struct video_crop_t *pcrop)
 
 		msm_io_w(0, vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 
-		CDBG("[CAM] vpe_ctrl->in_h_w = %d \n", vpe_ctrl->in_h_w);
-		msm_io_w(vpe_ctrl->in_h_w , vpe_device->vpebase +
+		CDBG("[CAM] vpe_ctrl_8x60->in_h_w = %d \n", vpe_ctrl_8x60->in_h_w);
+		msm_io_w(vpe_ctrl_8x60->in_h_w , vpe_device->vpebase +
 				VPE_SRC_SIZE_OFFSET);
 
 		return rc;
@@ -469,7 +480,7 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 {
 	uint32_t out_ROI_width, out_ROI_height;
 	uint32_t src_ROI_width, src_ROI_height;
-	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl->syncdata;
+	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl_8x60->syncdata;
 
 	uint32_t rc = 0;  /* default to no zoom. */
 	/*
@@ -510,16 +521,16 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 
 		msm_io_w(src_xy, vpe_device->vpebase + VPE_SRC_XY_OFFSET);
 
-		CDBG("[CAM] vpe_ctrl->in_h_w = 0x%x \n", vpe_ctrl->in_h_w);
-		msm_io_w(vpe_ctrl->in_h_w, vpe_device->vpebase +
+		CDBG("[CAM] vpe_ctrl_8x60->in_h_w = 0x%x \n", vpe_ctrl_8x60->in_h_w);
+		msm_io_w(vpe_ctrl_8x60->in_h_w, vpe_device->vpebase +
 				 VPE_SRC_SIZE_OFFSET);
 		return rc;
 	}
 	/* If fall through then scaler is needed.*/
 
 	/* calculate only offset when zooming */
-	if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R)
-		dis_offset->dis_offset_x -= vpe_ctrl->out_w;
+	if (vpe_ctrl_8x60->output_type == OUTPUT_TYPE_ST_R)
+		dis_offset->dis_offset_x -= vpe_ctrl_8x60->out_w;
 
 	CDBG("[CAM] ========VPE zoom needed + DIS enabled.\n");
 	/* assumption is both direction need zoom. this can be
@@ -572,8 +583,8 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 	CDBG("%s: [DEBUG] src x = %d, y = %d\n", __func__, src_x, src_y);
 #endif
 
-	out_ROI_width = vpe_ctrl->out_w;
-	out_ROI_height = vpe_ctrl->out_h;
+	out_ROI_width = vpe_ctrl_8x60->out_w;
+	out_ROI_height = vpe_ctrl_8x60->out_h;
 
 	src_ROI_width = out_ROI_width * pcrop->in2_w / pcrop->out2_w;
 	src_ROI_height = out_ROI_height * pcrop->in2_h / pcrop->out2_h;
@@ -595,8 +606,8 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 	CDBG("[CAM] src_x = %d, src_y=%d.\n", src_x, src_y);
 
 	/* add back out_w when calculating address */
-	if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R)
-		src_x += vpe_ctrl->out_w;
+	if (vpe_ctrl_8x60->output_type == OUTPUT_TYPE_ST_R)
+		src_x += vpe_ctrl_8x60->out_w;
 
 	src_xy = src_y*(1<<16) + src_x;
 	msm_io_w(src_xy, vpe_device->vpebase +
@@ -749,7 +760,7 @@ static int vpe_update_scaler_with_dis(struct video_crop_t *pcrop,
 	return 1;
 }
 
-void msm_send_frame_to_vpe(uint32_t pyaddr, uint32_t pcbcraddr,
+void msm_send_frame_to_vpe_8x60(uint32_t pyaddr, uint32_t pcbcraddr,
 		struct timespec *ts, int output_type)
 {
 	uint32_t temp_pyaddr = 0, temp_pcbcraddr = 0;
@@ -757,47 +768,47 @@ void msm_send_frame_to_vpe(uint32_t pyaddr, uint32_t pcbcraddr,
 		pyaddr, pcbcraddr);
 	msm_io_w(pyaddr, vpe_device->vpebase + VPE_SRCP0_ADDR_OFFSET);
 	msm_io_w(pcbcraddr, vpe_device->vpebase + VPE_SRCP1_ADDR_OFFSET);
-	if (vpe_ctrl->state == 1)
+	if (vpe_ctrl_8x60->state == 1)
 		pr_err("[CAM] =====VPE is busy!!!  Wrong!========\n");
 
 	if (output_type != OUTPUT_TYPE_ST_R)
-		vpe_ctrl->ts = *ts;
+		vpe_ctrl_8x60->ts = *ts;
 
 	if (output_type == OUTPUT_TYPE_ST_L) {
-		vpe_ctrl->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
+		vpe_ctrl_8x60->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 		temp_pyaddr = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP0_ADDR_OFFSET);
 
-		if (vpe_ctrl->frame_pack == TOP_DOWN_FULL)
-			temp_pcbcraddr = temp_pyaddr + (vpe_ctrl->out_w * vpe_ctrl->out_h * 2);
-		else if ((vpe_ctrl->frame_pack == SIDE_BY_SIDE_HALF) ||
-				(vpe_ctrl->frame_pack == SIDE_BY_SIDE_FULL))
+		if (vpe_ctrl_8x60->frame_pack == TOP_DOWN_FULL)
+			temp_pcbcraddr = temp_pyaddr + (vpe_ctrl_8x60->out_w * vpe_ctrl_8x60->out_h * 2);
+		else if ((vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_HALF) ||
+				(vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_FULL))
 			temp_pcbcraddr = temp_pyaddr +
-				PAD_TO_2K((vpe_ctrl->out_w * 2) * vpe_ctrl->out_h,
-				vpe_ctrl->pad_2k_bool);
+				PAD_TO_2K((vpe_ctrl_8x60->out_w * 2) * vpe_ctrl_8x60->out_h,
+				vpe_ctrl_8x60->pad_2k_bool);
 		else
 			CDBG("[CAM] %s: Invalid Frame Packing = %d\n", __func__,
-				 vpe_ctrl->frame_pack);
+				 vpe_ctrl_8x60->frame_pack);
 
 		msm_io_w(temp_pcbcraddr, vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 	}
 
-	if (vpe_ctrl->dis_en) {
+	if (vpe_ctrl_8x60->dis_en) {
 		/* Changing the VPE output CBCR address,
 		to make Y/CBCR continuous */
-		vpe_ctrl->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
+		vpe_ctrl_8x60->pcbcr_before_dis = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 		temp_pyaddr = msm_io_r(vpe_device->vpebase +
 			VPE_OUTP0_ADDR_OFFSET);
-		temp_pcbcraddr = temp_pyaddr + vpe_ctrl->pcbcr_dis_offset;
+		temp_pcbcraddr = temp_pyaddr + vpe_ctrl_8x60->pcbcr_dis_offset;
 		msm_io_w(temp_pcbcraddr, vpe_device->vpebase +
 			VPE_OUTP1_ADDR_OFFSET);
 	}
 
-	vpe_ctrl->output_type = output_type;
-	vpe_ctrl->state = 1;
+	vpe_ctrl_8x60->output_type = output_type;
+	vpe_ctrl_8x60->state = 1;
 	vpe_start();
 }
 
@@ -807,7 +818,7 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 	uint32_t *cmdp = NULL;
 	struct msm_queue_cmd *qcmd = NULL;
 	struct msm_vpe_buf_info *vpe_buf;
-	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl->syncdata;
+	struct msm_sync *sync = (struct msm_sync *)vpe_ctrl_8x60->syncdata;
 	CDBG("[CAM] vpe_proc_general: cmdID = %s, length = %d\n",
 		vpe_general_cmd[cmd->id], cmd->length);
 	switch (cmd->id) {
@@ -901,7 +912,7 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 			goto vpe_proc_general_done;
 		}
 		/* get the offset. */
-		vpe_ctrl->dis_offset = *(struct dis_offset_type *)cmdp;
+		vpe_ctrl_8x60->dis_offset = *(struct dis_offset_type *)cmdp;
 		qcmd = msm_dequeue_vpe(&sync->vpe_q, list_vpe_frame);
 		if (!qcmd) {
 			pr_err("[CAM] %s: no video frame.\n", __func__);
@@ -911,7 +922,7 @@ static int vpe_proc_general(struct msm_vpe_cmd *cmd)
 		vdata = (struct msm_vfe_resp *)(qcmd->command);
 		vpe_buf = &vdata->vpe_bf;
 		vpe_update_scaler_with_dis(&(vpe_buf->vpe_crop),
-					&(vpe_ctrl->dis_offset));
+					&(vpe_ctrl_8x60->dis_offset));
 
 		msm_send_frame_to_vpe(vpe_buf->y_phy, vpe_buf->cbcr_phy,
 						&(vpe_buf->ts), OUTPUT_TYPE_V);
@@ -952,8 +963,8 @@ static void vpe_addr_convert(struct msm_vpe_phy_info *pinfo,
 			((struct vpe_message *)data)->_u.msgOut.yBuffer;
 		pinfo->cbcr_phy =
 			((struct vpe_message *)data)->_u.msgOut.cbcrBuffer;
-		*ext  = vpe_ctrl->extdata;
-		*elen = vpe_ctrl->extlen;
+		*ext  = vpe_ctrl_8x60->extdata;
+		*elen = vpe_ctrl_8x60->extlen;
 		break;
 
 	default:
@@ -965,8 +976,8 @@ void vpe_proc_ops(uint8_t id, void *msg, size_t len)
 {
 	struct msm_vpe_resp *rp;
 
-	rp = vpe_ctrl->resp->vpe_alloc(sizeof(struct msm_vpe_resp),
-		vpe_ctrl->syncdata, GFP_ATOMIC);
+	rp = vpe_ctrl_8x60->resp->vpe_alloc(sizeof(struct msm_vpe_resp),
+		vpe_ctrl_8x60->syncdata, GFP_ATOMIC);
 	if (!rp) {
 		CDBG("[CAM] rp: cannot allocate buffer\n");
 		return;
@@ -1002,10 +1013,10 @@ void vpe_proc_ops(uint8_t id, void *msg, size_t len)
 		break;
 	}
 	CDBG("[CAM] %s: time = %ld\n",
-			__func__, vpe_ctrl->ts.tv_nsec);
-	vpe_ctrl->resp->vpe_resp(rp, MSM_CAM_Q_VPE_MSG,
-					vpe_ctrl->syncdata,
-					&(vpe_ctrl->ts), GFP_ATOMIC);
+			__func__, vpe_ctrl_8x60->ts.tv_nsec);
+	vpe_ctrl_8x60->resp->vpe_resp(rp, MSM_CAM_Q_VPE_MSG,
+					vpe_ctrl_8x60->syncdata,
+					&(vpe_ctrl_8x60->ts), GFP_ATOMIC);
 }
 
 int vpe_config_axi(struct axidata *ad)
@@ -1030,7 +1041,7 @@ int vpe_config_axi(struct axidata *ad)
 	return 0;
 }
 
-int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
+int msm_vpe_config_8x60(struct msm_vpe_cfg_cmd *cmd, void *data)
 {
 	struct msm_vpe_cmd vpecmd;
 	int rc = 0;
@@ -1066,7 +1077,7 @@ int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
 }
 
 #ifdef CONFIG_CAMERA_3D
-void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
+void msm_vpe_offset_update_8x60(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	struct timespec *ts, int output_id, struct msm_st_half st_half,
 	int frameid)
 {
@@ -1080,11 +1091,11 @@ void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	vpe_buf.vpe_crop.in2_h = st_half.stCropInfo.in_h;
 	vpe_buf.vpe_crop.out2_w = st_half.stCropInfo.out_w;
 	vpe_buf.vpe_crop.out2_h = st_half.stCropInfo.out_h;
-	vpe_ctrl->dis_offset.dis_offset_x = st_half.pix_x_off;
-	vpe_ctrl->dis_offset.dis_offset_y = st_half.pix_y_off;
-	vpe_ctrl->dis_offset.frame_id = frameid;
-	vpe_ctrl->frame_pack = frame_pack;
-	vpe_ctrl->output_type = output_id;
+	vpe_ctrl_8x60->dis_offset.dis_offset_x = st_half.pix_x_off;
+	vpe_ctrl_8x60->dis_offset.dis_offset_y = st_half.pix_y_off;
+	vpe_ctrl_8x60->dis_offset.frame_id = frameid;
+	vpe_ctrl_8x60->frame_pack = frame_pack;
+	vpe_ctrl_8x60->output_type = output_id;
 
 #ifdef NO_EXTRA_C2D_BUF
 	input_stride = (st_half.buf_cbcr_stride * (1<<16)) +
@@ -1094,7 +1105,7 @@ void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 #endif
 
 	vpe_update_scaler_with_dis(&(vpe_buf.vpe_crop),
-		&(vpe_ctrl->dis_offset));
+		&(vpe_ctrl_8x60->dis_offset));
 
 	msm_send_frame_to_vpe(pyaddr, pcbcraddr, ts, output_id);
 }
@@ -1110,14 +1121,14 @@ void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr,
 	vpe_buf.vpe_crop.in2_h = stCropInfo.in_h;
 	vpe_buf.vpe_crop.out2_w = stCropInfo.out_w;
 	vpe_buf.vpe_crop.out2_h = stCropInfo.out_h;
-	vpe_ctrl->dis_offset.dis_offset_x = x;
-	vpe_ctrl->dis_offset.dis_offset_y = y;
-	vpe_ctrl->dis_offset.frame_id = frameid;
-	vpe_ctrl->frame_pack = frame_pack;
-	vpe_ctrl->output_type = output_id;
+	vpe_ctrl_8x60->dis_offset.dis_offset_x = x;
+	vpe_ctrl_8x60->dis_offset.dis_offset_y = y;
+	vpe_ctrl_8x60->dis_offset.frame_id = frameid;
+	vpe_ctrl_8x60->frame_pack = frame_pack;
+	vpe_ctrl_8x60->output_type = output_id;
 
 	vpe_update_scaler_with_dis(&(vpe_buf.vpe_crop),
-		&(vpe_ctrl->dis_offset));
+		&(vpe_ctrl_8x60->dis_offset));
 
 	msm_send_frame_to_vpe(pyaddr, pcbcraddr, ts, output_id);
 }
@@ -1136,13 +1147,13 @@ static void vpe_send_outmsg(uint8_t msgid, uint32_t pyaddr,
 	return;
 }
 
-int msm_vpe_reg(struct msm_vpe_callback *presp)
+int msm_vpe_reg_8x60(struct msm_vpe_callback *presp)
 {
 
 	if (presp && presp->vpe_resp)
-		vpe_ctrl->resp = presp;
+		vpe_ctrl_8x60->resp = presp;
 		/*
-		CDBG("[CAM] vpe_ctrl->resp = %x \n", vpe_ctrl->resp);
+		CDBG("[CAM] vpe_ctrl_8x60->resp = %x \n", vpe_ctrl_8x60->resp);
 		*/
 
 	return 0;
@@ -1165,23 +1176,23 @@ static void vpe_do_tasklet(unsigned long data)
 
 	CDBG("[CAM] === vpe_do_tasklet start === \n");
 
-	spin_lock_irqsave(&vpe_ctrl->tasklet_lock, flags);
-	qcmd = list_first_entry(&vpe_ctrl->tasklet_q,
+	spin_lock_irqsave(&vpe_ctrl_8x60->tasklet_lock, flags);
+	qcmd = list_first_entry(&vpe_ctrl_8x60->tasklet_q,
 		struct vpe_isr_queue_cmd_type, list);
 
 	if (!qcmd) {
-		spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+		spin_unlock_irqrestore(&vpe_ctrl_8x60->tasklet_lock, flags);
 		return;
 	}
 
 	list_del(&qcmd->list);
-	spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+	spin_unlock_irqrestore(&vpe_ctrl_8x60->tasklet_lock, flags);
 
 	/* interrupt to be processed,  *qcmd has the payload.  */
 	if (qcmd->irq_status & 0x1) {
-		if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_L) {
+		if (vpe_ctrl_8x60->output_type == OUTPUT_TYPE_ST_L) {
 			CDBG("[CAM] vpe left frame done.\n");
-			vpe_ctrl->output_type = 0;
+			vpe_ctrl_8x60->output_type = 0;
 			CDBG("[CAM] vpe send out msg.\n");
 			orig_src_y =
 				msm_io_r(vpe_device->vpebase + VPE_SRCP0_ADDR_OFFSET);
@@ -1192,41 +1203,41 @@ static void vpe_do_tasklet(unsigned long data)
 			msm_io_r(vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
 		pcbcraddr =
 			msm_io_r(vpe_device->vpebase + VPE_OUTP1_ADDR_OFFSET);
-			CDBG("[CAM] %s: out_w = %d, out_h = %d\n", __func__, vpe_ctrl->out_w,
-					 vpe_ctrl->out_h);
+			CDBG("[CAM] %s: out_w = %d, out_h = %d\n", __func__, vpe_ctrl_8x60->out_w,
+					 vpe_ctrl_8x60->out_h);
 
-			if (vpe_ctrl->frame_pack == TOP_DOWN_FULL) {
-				msm_io_w(pyaddr + (vpe_ctrl->out_w * vpe_ctrl->out_h),
+			if (vpe_ctrl_8x60->frame_pack == TOP_DOWN_FULL) {
+				msm_io_w(pyaddr + (vpe_ctrl_8x60->out_w * vpe_ctrl_8x60->out_h),
 						vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
-				msm_io_w(pcbcraddr + (vpe_ctrl->out_w * vpe_ctrl->out_h/2),
+				msm_io_w(pcbcraddr + (vpe_ctrl_8x60->out_w * vpe_ctrl_8x60->out_h/2),
 						vpe_device->vpebase + VPE_OUTP1_ADDR_OFFSET);
-			} else if ((vpe_ctrl->frame_pack == SIDE_BY_SIDE_HALF)
-					|| (vpe_ctrl->frame_pack == SIDE_BY_SIDE_FULL)) {
-				msm_io_w(pyaddr + vpe_ctrl->out_w,
+			} else if ((vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_HALF)
+					|| (vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_FULL)) {
+				msm_io_w(pyaddr + vpe_ctrl_8x60->out_w,
 						vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
-				msm_io_w(pcbcraddr + vpe_ctrl->out_w,
+				msm_io_w(pcbcraddr + vpe_ctrl_8x60->out_w,
 						vpe_device->vpebase + VPE_OUTP1_ADDR_OFFSET);
 			} else
-				CDBG("[CAM] %s: Invalid packing = %d\n", __func__, vpe_ctrl->frame_pack);
+				CDBG("[CAM] %s: Invalid packing = %d\n", __func__, vpe_ctrl_8x60->frame_pack);
 			vpe_send_msg_no_payload(MSG_ID_VPE_OUTPUT_ST_L);
-			vpe_ctrl->state = 0;   /* put it back to idle. */
+			vpe_ctrl_8x60->state = 0;   /* put it back to idle. */
 			kfree(qcmd);
 			return;
-		} else if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R) {
+		} else if (vpe_ctrl_8x60->output_type == OUTPUT_TYPE_ST_R) {
 			src_y = orig_src_y;
 			src_cbcr = orig_src_cbcr;
-			CDBG("[CAM] %s: out_w = %d, out_h = %d\n", __func__, vpe_ctrl->out_w,
-					 vpe_ctrl->out_h);
-			if (vpe_ctrl->frame_pack == TOP_DOWN_FULL) {
+			CDBG("[CAM] %s: out_w = %d, out_h = %d\n", __func__, vpe_ctrl_8x60->out_w,
+					 vpe_ctrl_8x60->out_h);
+			if (vpe_ctrl_8x60->frame_pack == TOP_DOWN_FULL) {
 				pyaddr = msm_io_r(vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET) -
-					(vpe_ctrl->out_w * vpe_ctrl->out_h);
-			} else if ((vpe_ctrl->frame_pack == SIDE_BY_SIDE_HALF)
-					|| (vpe_ctrl->frame_pack == SIDE_BY_SIDE_FULL)) {
+					(vpe_ctrl_8x60->out_w * vpe_ctrl_8x60->out_h);
+			} else if ((vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_HALF)
+					|| (vpe_ctrl_8x60->frame_pack == SIDE_BY_SIDE_FULL)) {
 				pyaddr = msm_io_r(vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET) -
-					vpe_ctrl->out_w;
+					vpe_ctrl_8x60->out_w;
 			} else
-				CDBG("[CAM] %s: Invalid packing = %d\n", __func__, vpe_ctrl->frame_pack);
-			pcbcraddr = vpe_ctrl->pcbcr_before_dis;
+				CDBG("[CAM] %s: Invalid packing = %d\n", __func__, vpe_ctrl_8x60->frame_pack);
+			pcbcraddr = vpe_ctrl_8x60->pcbcr_before_dis;
 		} else {
 		src_y =
 			msm_io_r(vpe_device->vpebase + VPE_SRCP0_ADDR_OFFSET);
@@ -1237,8 +1248,8 @@ static void vpe_do_tasklet(unsigned long data)
 			pcbcraddr =
 				msm_io_r(vpe_device->vpebase + VPE_OUTP1_ADDR_OFFSET);
 		}
-		if (vpe_ctrl->dis_en)
-			pcbcraddr = vpe_ctrl->pcbcr_before_dis;
+		if (vpe_ctrl_8x60->dis_en)
+			pcbcraddr = vpe_ctrl_8x60->pcbcr_before_dis;
 
 		msm_io_w(src_y,
 				vpe_device->vpebase + VPE_OUTP0_ADDR_OFFSET);
@@ -1249,13 +1260,13 @@ static void vpe_do_tasklet(unsigned long data)
 		vpe_device->vpebase + VPE_OP_MODE_OFFSET) & 0xFFFFFFFC;
 		msm_io_w(temp, vpe_device->vpebase + VPE_OP_MODE_OFFSET);
 		CDBG("[CAM] vpe send out msg.\n");
-		vpe_ctrl->output_type = 0;
+		vpe_ctrl_8x60->output_type = 0;
 		/*  now pass this frame to msm_camera.c. */
-		if (vpe_ctrl->output_type == OUTPUT_TYPE_ST_R)
+		if (vpe_ctrl_8x60->output_type == OUTPUT_TYPE_ST_R)
 			vpe_send_outmsg(MSG_ID_VPE_OUTPUT_ST_R, pyaddr, pcbcraddr);
 		else
 		vpe_send_outmsg(MSG_ID_VPE_OUTPUT_V, pyaddr, pcbcraddr);
-		vpe_ctrl->state = 0;   /* put it back to idle. */
+		vpe_ctrl_8x60->state = 0;   /* put it back to idle. */
 
 	}
 	kfree(qcmd);
@@ -1293,9 +1304,9 @@ static irqreturn_t vpe_parse_irq(int irq_num, void *data)
 		/* must be 0x1 now. so in bottom half we don't really
 		need to check. */
 		qcmd->irq_status = irq_status & 0x1;
-		spin_lock_irqsave(&vpe_ctrl->tasklet_lock, flags);
-		list_add_tail(&qcmd->list, &vpe_ctrl->tasklet_q);
-		spin_unlock_irqrestore(&vpe_ctrl->tasklet_lock, flags);
+		spin_lock_irqsave(&vpe_ctrl_8x60->tasklet_lock, flags);
+		list_add_tail(&qcmd->list, &vpe_ctrl_8x60->tasklet_q);
+		spin_unlock_irqrestore(&vpe_ctrl_8x60->tasklet_lock, flags);
 		tasklet_schedule(&vpe_tasklet);
 	}
 	return IRQ_HANDLED;
@@ -1310,17 +1321,19 @@ static int vpe_enable_irq(void)
 	return rc;
 }
 
-int msm_vpe_open(void)
+int msm_vpe_open_8x60(void)
 {
 	int rc = 0;
 
 	CDBG("[CAM] %s: In \n", __func__);
 
-	vpe_ctrl = kzalloc(sizeof(struct vpe_ctrl_type), GFP_KERNEL);
-	if (!vpe_ctrl) {
+	vpe_ctrl_8x60 = kzalloc(sizeof(struct vpe_ctrl_type), GFP_KERNEL);
+	if (!vpe_ctrl_8x60) {
 		pr_err("[CAM] %s: no memory!\n", __func__);
 		return -ENOMEM;
 	}
+    vpe_ctrl = vpe_ctrl_8x60;
+
 	/* don't change the order of clock and irq.*/
 	CDBG("[CAM] %s: enable_clock \n", __func__);
 	rc = msm_camio_vpe_clk_enable();
@@ -1329,15 +1342,15 @@ int msm_vpe_open(void)
 	vpe_enable_irq();
 
 	/* initialize the data structure - lock, queue etc. */
-	spin_lock_init(&vpe_ctrl->tasklet_lock);
-	INIT_LIST_HEAD(&vpe_ctrl->tasklet_q);
+	spin_lock_init(&vpe_ctrl_8x60->tasklet_lock);
+	INIT_LIST_HEAD(&vpe_ctrl_8x60->tasklet_q);
 
 	CDBG("[CAM] %s: Out \n", __func__);
 
 	return rc;
 }
 
-int msm_vpe_release(void)
+int msm_vpe_release_8x60(void)
 {
 	/* clean up....*/
 	/* drain the queue, etc. */
@@ -1349,7 +1362,7 @@ int msm_vpe_release(void)
 	free_irq(vpe_device->vpeirq, 0);
 	tasklet_kill(&vpe_tasklet);
 	rc = msm_camio_vpe_clk_disable();
-	kfree(vpe_ctrl);
+	kfree(vpe_ctrl_8x60);
 
 	pr_info("[CAM] %s: Out\n", __func__);
 	return rc;
