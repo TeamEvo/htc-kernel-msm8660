@@ -4194,6 +4194,7 @@ static struct msm_rpm_platform_data msm_rpm_data = {
 		[MSM_RPM_PAGE_CTRL] = MSM_RPM_BASE + 0x400,
 		[MSM_RPM_PAGE_REQ] = MSM_RPM_BASE + 0x600,
 		[MSM_RPM_PAGE_ACK] = MSM_RPM_BASE + 0xa00,
+        [MSM_RPM_PAGE_STAT] = MSM_RPM_BASE + 0x3E04,
 	},
 
 	.irq_ack = RPM_SCSS_CPU0_GP_HIGH_IRQ,
@@ -4298,6 +4299,23 @@ static void __init msm8x60_init_buses(void)
 #endif
 }
 
+#define PM8058_LPM_SET(id)	(1 << RPM_VREG_ID_##id)
+#define PM8901_LPM_SET(id)	(1 << (RPM_VREG_ID_##id - RPM_VREG_ID_PM8901_L0))
+
+uint32_t __initdata regulator_lpm_set[] =
+{
+	PM8058_LPM_SET(PM8058_L0) | PM8058_LPM_SET(PM8058_L1) | PM8058_LPM_SET(PM8058_L2) |
+	PM8058_LPM_SET(PM8058_L3) | PM8058_LPM_SET(PM8058_L5) | PM8058_LPM_SET(PM8058_L6) |
+	PM8058_LPM_SET(PM8058_L7) | PM8058_LPM_SET(PM8058_L8) | PM8058_LPM_SET(PM8058_L9) |
+	PM8058_LPM_SET(PM8058_L10) | PM8058_LPM_SET(PM8058_L11) | PM8058_LPM_SET(PM8058_L13) |
+	PM8058_LPM_SET(PM8058_L15) | PM8058_LPM_SET(PM8058_L16) | PM8058_LPM_SET(PM8058_L17) |
+	PM8058_LPM_SET(PM8058_L18) | PM8058_LPM_SET(PM8058_L19) | PM8058_LPM_SET(PM8058_L20) |
+	PM8058_LPM_SET(PM8058_L21) | PM8058_LPM_SET(PM8058_L22) | PM8058_LPM_SET(PM8058_L23) |
+	PM8058_LPM_SET(PM8058_L24) | PM8058_LPM_SET(PM8058_L25),
+	PM8901_LPM_SET(PM8901_L0) | PM8901_LPM_SET(PM8901_L1) | PM8901_LPM_SET(PM8901_L2) |
+	PM8901_LPM_SET(PM8901_L3) | PM8901_LPM_SET(PM8901_L5),
+};
+
 static void __init msm8x60_init(void)
 {
 	int rc = 0;
@@ -4310,6 +4328,7 @@ static void __init msm8x60_init(void)
 	 * it for their initialization.
 	 */
 	BUG_ON(msm_rpm_init(&msm_rpm_data));
+    msm_rpm_lpm_init(regulator_lpm_set, ARRAY_SIZE(regulator_lpm_set));
 	BUG_ON(msm_rpmrs_levels_init(msm_rpmrs_levels,
 				ARRAY_SIZE(msm_rpmrs_levels)));
 	if (msm_xo_init())
