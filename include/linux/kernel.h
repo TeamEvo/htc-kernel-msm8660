@@ -378,6 +378,7 @@ extern void hex2bin(u8 *dst, const char *src, size_t count);
 
 #define pr_aud_fmt(fmt) "[AUD] " KBUILD_MODNAME ": " fmt
 #define pr_aud_fmt1(fmt) "[AUD]" fmt
+#if 0
 #define pr_aud_err(fmt, ...) \
 			printk(KERN_ERR pr_aud_fmt(fmt), ##__VA_ARGS__)
 #define pr_aud_err1(fmt, ...) \
@@ -386,6 +387,12 @@ extern void hex2bin(u8 *dst, const char *src, size_t count);
 			printk(KERN_INFO pr_aud_fmt(fmt), ##__VA_ARGS__)
 #define pr_aud_info1(fmt, ...) \
 			printk(KERN_INFO pr_aud_fmt1(fmt), ##__VA_ARGS__)
+#else
+#define pr_aud_err(fmt, ...)
+#define pr_aud_err1(fmt, ...)
+#define pr_aud_info(fmt, ...)
+#define pr_aud_info1(fmt, ...)
+#endif
 
 /*
  * General tracing related utility functions - trace_printk(),
