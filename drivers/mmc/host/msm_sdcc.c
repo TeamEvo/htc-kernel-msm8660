@@ -2205,6 +2205,26 @@ static inline int msmsdcc_is_pwrsave(struct msmsdcc_host *host)
 	return 0;
 }
 
+static inline void msmsdcc_disable_clocks(struct msmsdcc_host *host, int deferr)
+{
+	return;
+}
+EXPORT_SYMBOL(msmsdcc_disable_clocks);
+
+static inline int msmsdcc_enable_clocks(struct msmsdcc_host *host)
+{
+	/*runtime resume would enable the CLK,
+	so we dont need this part to en-clk again*/
+	return 0;
+}
+EXPORT_SYMBOL(msmsdcc_enable_clocks);
+
+int msmsdcc_get_sdc_clocks(struct msmsdcc_host *host)
+{
+	return host->clks_on;
+}
+EXPORT_SYMBOL(msmsdcc_get_sdc_clocks);
+
 static inline void msmsdcc_setup_clocks(struct msmsdcc_host *host, bool enable)
 {
 	if (enable) {
