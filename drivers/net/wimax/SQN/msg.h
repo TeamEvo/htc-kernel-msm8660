@@ -60,6 +60,16 @@ do {								\
 #endif /* SQN_DEBUG_DUMP */
 
 
+#ifndef DEBUG
+#define DEBUG
+#endif
+#ifndef SQN_DEBUG_LEVEL_INFO
+#define SQN_DEBUG_LEVEL_INFO
+#endif
+#ifndef SQN_DEBUG_TRACE
+#define SQN_DEBUG_TRACE
+#endif
+
 #if defined(DEBUG)
 
 #ifdef	SQN_DEBUG_LEVEL_INFO

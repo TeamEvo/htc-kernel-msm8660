@@ -2947,6 +2947,9 @@ static struct platform_device *devices[] __initdata = {
 #ifdef CONFIG_SERIAL_MSM_HS
 	&msm_device_uart_dm1,
 #endif
+#if defined(CONFIG_WIMAX)
+    &msm_device_uart_dm3,
+#endif
 #if defined(CONFIG_SPI_QUP) || defined(CONFIG_SPI_QUP_MODULE)
 	&msm_gsbi1_qup_spi_device,
 #ifdef CONFIG_MACH_SHOOTER

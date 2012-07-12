@@ -93,6 +93,9 @@ static struct smd_config smd_configs[] = {
 #else
 	{11, "DATA11", NULL, SMD_APPS_MODEM},
 #endif
+#ifdef CONFIG_WIMAX
+	{19, "DATA3", NULL, SMD_APPS_MODEM},
+#endif
 	{21, "DATA21", NULL, SMD_APPS_MODEM},
 	{27, "GPSNMEA", NULL, SMD_APPS_MODEM},
 	{36, "LOOPBACK", "LOOPBACK_TTY", SMD_APPS_MODEM},

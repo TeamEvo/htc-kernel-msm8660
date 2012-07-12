@@ -960,34 +960,50 @@ int sdio_reset_comm(struct mmc_card *card)
 
 	err = mmc_send_io_op_cond(host, 0, &ocr);
 	if (err)
+    {
+        printk("%s(): mmc_send_io_op_cond failed (line %d).\n", __func__, __LINE__);
 		goto err;
+    }
 
 	host->ocr = mmc_select_voltage(host, ocr);
 	if (!host->ocr) {
+        printk("%s(): mmc_select_voltage failed.\n", __func__);
 		err = -EINVAL;
 		goto err;
 	}
 
 	err = mmc_send_io_op_cond(host, host->ocr, &ocr);
 	if (err)
+    {
+        printk("%s(): mmc_send_io_op_cond failed (line %d).\n", __func__, __LINE__);
 		goto err;
+    }
 
 	if (mmc_host_is_spi(host)) {
 		err = mmc_spi_set_crc(host, use_spi_crc);
 		if (err)
+        {
+            printk("%s(): mmc_spi_set_crc failed.\n", __func__);
 			goto err;
+        }
 	}
 
 	if (!mmc_host_is_spi(host)) {
 		err = mmc_send_relative_addr(host, &card->rca);
 		if (err)
+        {
+            printk("%s(): mmc_send_relative_addr failed.\n", __func__);
 			goto err;
+        }
 		mmc_set_bus_mode(host, MMC_BUSMODE_PUSHPULL);
 	}
 	if (!mmc_host_is_spi(host)) {
 		err = mmc_select_card(card);
 		if (err)
+        {
+            printk("%s(): mmc_select_card failed.\n", __func__);
 			goto err;
+        }
 	}
 
 	/*
@@ -997,7 +1013,10 @@ int sdio_reset_comm(struct mmc_card *card)
 	if (err > 0)
 		mmc_sd_go_highspeed(card);
 	else if (err)
+    {
+        printk("%s(): sdio_enable_hs failed.\n", __func__);
 		goto err;
+    }
 
 	/*
 	 * Change to the card's maximum speed.
@@ -1012,7 +1031,10 @@ int sdio_reset_comm(struct mmc_card *card)
 			mmc_set_bus_width(host, MMC_BUS_WIDTH_4);
 	}
 	else if (err)
+    {
+        printk("%s(): sdio_enable_4bit_bus failed.\n", __func__);
 		goto err;
+    }
 
 	mmc_release_host(host);
 	return 0;

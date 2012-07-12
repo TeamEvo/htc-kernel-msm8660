@@ -29,7 +29,6 @@
 #include <asm/div64.h>
 #include <mach/board_htc.h>
 
-#ifdef CONFIG_MACH_SHOOTER
 #define vpe_ctrl_8x60                           vpe_ctrl
 #define msm_vpe_cfg_update_8x60                 msm_vpe_cfg_update
 #define msm_send_frame_to_vpe_8x60              msm_send_frame_to_vpe
@@ -38,7 +37,6 @@
 #define msm_vpe_reg_8x60                        msm_vpe_reg
 #define msm_vpe_open_8x60                       msm_vpe_open
 #define msm_vpe_release_8x60                    msm_vpe_release
-#endif
 
 static int vpe_update_scaler(struct video_crop_t *pcrop);
 static struct vpe_device_type  vpe_device_data;

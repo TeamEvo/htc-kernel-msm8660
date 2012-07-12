@@ -935,7 +935,6 @@ int sqn_sdio_it_lsb(struct sdio_func *func)
 	int rc = 0;
 	u8 status = 0;
 	unsigned long irq_flags = 0;
-	u8 is_card_sleeps = 0;
 	int retry = 0;
 
 	static int ReadDataFailed_ctr = 0;
@@ -964,10 +963,6 @@ retry_LSB:
 
 	sqn_pr_dbg("interrupt(LSB): 0x%02X\n", (unsigned char) status);
 
-	spin_lock_irqsave(&card->priv->drv_lock, irq_flags);
-	is_card_sleeps = card->is_card_sleeps;
-	spin_unlock_irqrestore(&card->priv->drv_lock, irq_flags);
-
 	/* Handle interrupt */
 	if (status & SQN_SDIO_IT_WR_FIFO2_WM) {
 		sqn_pr_dbg("skipping FIFO2 write watermark interrupt...\n");
@@ -980,7 +975,7 @@ retry_ClearLSB_IN_WR_FIFO2:
 				SQN_SDIO_IT_STATUS_LSBS, &rc);
 
 		if (!rc) {
-			// sqn_pr_info("%s: clear interrupt(LSB) successful at #%d!\n", __func__, retry);
+			sqn_pr_info("%s: clear interrupt(LSB) successful at #%d!\n", __func__, retry);
 			;
 		} else {
 			sqn_pr_info("%s: clear interrupt(LSB) failed at #%d!\n", __func__, retry);
@@ -1142,12 +1137,18 @@ void sqn_sdio_interrupt(struct sdio_func *func)
 
 	sqn_sdio_it_lsb(func);
 
-	spin_lock_irqsave(&card->priv->drv_lock, irq_flags);
-	is_card_sleeps = card->is_card_sleeps;
-	spin_unlock_irqrestore(&card->priv->drv_lock, irq_flags);
-
-	if (!is_card_sleeps)
-		sqn_sdio_it_msb(func);
+    if (!card || !card->priv)
+    {
+        sqn_pr_err("!!! Invalid parameter before checking card sleep! (%s)\n", card == NULL ? "card == NULL" : "card->priv == NULL");
+    }
+    else
+    {
+        spin_lock_irqsave(&card->priv->drv_lock, irq_flags);
+        is_card_sleeps = card->is_card_sleeps;
+        spin_unlock_irqrestore(&card->priv->drv_lock, irq_flags);
+    }
+    if (!is_card_sleeps)
+        sqn_sdio_it_msb(func);
 
 	sqn_pr_leave();
 }
@@ -1477,7 +1478,7 @@ static u8 sqn_get_card_version(struct sdio_func *func)
 		 * parameter, so we change firmware_name only if it was not
 		 * changed from its default value
 		 */
-		if (0 == strcmp(firmware_name, SQN_DEFAULT_FW_NAME))
+		if (firmware_name == NULL || 0 == strcmp(firmware_name, SQN_DEFAULT_FW_NAME))
 			firmware_name = fw1210_name;
 #endif
 		rv = SQN_1210;
@@ -1669,6 +1670,15 @@ static int sqn_sdio_probe(struct sdio_func *func,
 
 	sqn_card->func = func;
 
+    /* set the driver data before we claim the IRQ */
+    sdio_set_drvdata(func, sqn_card);
+
+    priv = sqn_add_card(sqn_card, &func->dev);
+    if (!priv) {
+        rv = -ENOMEM;
+        goto reclaim;
+    }
+
 	/* Activate SDIO function and register interrupt handler */
 	sdio_claim_host(func);
 
@@ -1681,13 +1691,6 @@ static int sqn_sdio_probe(struct sdio_func *func,
 		goto disable;
 
 	sdio_release_host(func);
-
-	sdio_set_drvdata(func, sqn_card);
-	priv = sqn_add_card(sqn_card, &func->dev);
-	if (!priv) {
-		rv = -ENOMEM;
-		goto reclaim;
-	}
 
 	sqn_card->priv = priv;
 

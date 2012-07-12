@@ -33,7 +33,10 @@ int mmc_send_io_op_cond(struct mmc_host *host, u32 ocr, u32 *rocr)
 	for (i = 100; i; i--) {
 		err = mmc_wait_for_cmd(host, &cmd, MMC_CMD_RETRIES);
 		if (err)
+        {
+            printk("%s() @ line %d: err (%d)\n", __func__, __LINE__, err);
 			break;
+        }
 
 		/* if we're just probing, do a single pass */
 		if (ocr == 0)
