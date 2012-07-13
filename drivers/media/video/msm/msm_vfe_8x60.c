@@ -3426,10 +3426,15 @@ static void vfe31_release(struct platform_device *pdev)
 	kfree(vfe31_ctrl);
 	vfe31_ctrl = NULL;
 	release_mem_region(vfemem->start, (vfemem->end - vfemem->start) + 1);
+/*HTC_START Horng 20110905*/
+/*Move to msm_camera_8x60.c , It's to call after sensor release*/
+#if 0
 	pr_info("[CAM] %s, msm_camio_disable\n", __func__);
 	msm_camio_disable(pdev);
 	pr_info("[CAM] %s, msm_camio_set_perf_lvl\n", __func__);
 	msm_camio_set_perf_lvl(S_EXIT);
+#endif
+/*HTC_END*/
 
 	vfe_syncdata = NULL;
 }

@@ -1408,51 +1408,60 @@ void msm_vpe_offset_update_8x60(int frame_pack, uint32_t pyaddr, uint32_t pcbcra
 	struct timespec *ts, int output_id, struct msm_st_half st_half,
 	int frameid);
 
+bool isLiteon(void)
+{
+#ifdef CONFIG_MACH_SHOOTER_U
+	if (system_rev == 0x80 && engineerid == 0x1)
+        return true;
+#endif
+    return false;
+}
+
 int msm_vpe_open(void)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_open_liteon();
     return msm_vpe_open_8x60();
 }
 
 int msm_vpe_release(void)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_release_liteon();
     return msm_vpe_release_8x60();
 }
 
 int msm_vpe_reg(struct msm_vpe_callback *presp)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_reg_liteon(presp);
     return msm_vpe_reg_8x60(presp);
 }
 
 void msm_send_frame_to_vpe(uint32_t pyaddr, uint32_t pcbcraddr, struct timespec *ts, int output_id)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_send_frame_to_vpe_liteon(pyaddr,pcbcraddr,ts,output_id);
     return msm_send_frame_to_vpe_8x60(pyaddr,pcbcraddr,ts,output_id);
 }
 
 int msm_vpe_config(struct msm_vpe_cfg_cmd *cmd, void *data)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_config_liteon(cmd,data);
     return msm_vpe_config_8x60(cmd,data);
 }
 
 int msm_vpe_cfg_update(void *pinfo)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_cfg_update_liteon(pinfo);
     return msm_vpe_cfg_update_8x60(pinfo);
 }
 
 void msm_vpe_offset_update(int frame_pack, uint32_t pyaddr, uint32_t pcbcraddr, struct timespec *ts, int output_id, struct msm_st_half st_half, int frameid)
 {
-    if (system_rev == 0x80 && engineerid == 0x1)
+    if (isLiteon())
         return msm_vpe_offset_update_liteon(frame_pack,pyaddr,pcbcraddr,ts,output_id,st_half,frameid);
     return msm_vpe_offset_update_8x60(frame_pack,pyaddr,pcbcraddr,ts,output_id,st_half,frameid);
 }
@@ -1479,7 +1488,7 @@ static struct platform_driver msm_vpe_driver = {
 
 static int __init msm_vpe_init(void)
 {
-	if (system_rev == 0x80 && engineerid == 0x1)
+	if (isLiteon())
 		return platform_driver_register(&msm_vpe_driver);
 	else
 		return 0;
